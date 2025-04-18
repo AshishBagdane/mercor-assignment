@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.5.xsd">
+
+  <changeSet id="5" author="mercor_developer">
+    <comment>Insert sample data for Jobs table</comment>
+
+    <!-- Software Engineer position that had rate changes -->
+    <insert tableName="jobs">
+      <column name="id">job_ckbk6oo4hn7pacdgcz9f</column>
+      <column name="version">1</column>
+      <column name="uid">job_uid_tm15dj18wal295r3xiea</column>
+      <column name="status">extended</column>
+      <column name="rate">20.00</column>
+      <column name="title">Software Engineer</column>
+      <column name="company_id">comp_cab5i8o0rvh5arskod</column>
+      <column name="contractor_id">cont_e0nhseq682vkoc4d</column>
+      <column name="created_at">2023-01-15 10:00:00</column>
+      <column name="updated_at">2023-01-15 10:00:00</column>
+    </insert>
+
+    <insert tableName="jobs">
+      <column name="id">job_ckbk6oo4hn7pacdgcz9f</column>
+      <column name="version">2</column>
+      <column name="uid">job_uid_ae51ppj9jpt56he2ua3</column>
+      <column name="status">active</column>
+      <column name="rate">20.00</column>
+      <column name="title">Software Engineer</column>
+      <column name="company_id">comp_cab5i8o0rvh5arskod</column>
+      <column name="contractor_id">cont_e0nhseq682vkoc4d</column>
+      <column name="created_at">2023-02-01 09:30:00</column>
+      <column name="updated_at">2023-02-01 09:30:00</column>
+    </insert>
+
+    <insert tableName="jobs">
+      <column name="id">job_ckbk6oo4hn7pacdgcz9f</column>
+      <column name="version">3</column>
+      <column name="uid">job_uid_ywij5sh1tvfp5nkq7azav</column>
+      <column name="status">active</column>
+      <column name="rate">15.50</column>
+      <column name="title">Software Engineer</column>
+      <column name="company_id">comp_cab5i8o0rvh5arskod</column>
+      <column name="contractor_id">cont_e0nhseq682vkoc4d</column>
+      <column name="created_at">2023-03-10 14:15:00</column>
+      <column name="updated_at">2023-03-10 14:15:00</column>
+    </insert>
+
+    <!-- ML Engineer position -->
+    <insert tableName="jobs">
+      <column name="id">job_eysl9r8bhyis7y3lgso00</column>
+      <column name="version">1</column>
+      <column name="uid">job_uid_c7pnhvtsgcqm15z8pvh</column>
+      <column name="status">extended</column>
+      <column name="rate">30.00</column>
+      <column name="title">ML Engineer</column>
+      <column name="company_id">comp_cab5i8o0rvh5arskod</column>
+      <column name="contractor_id">cont_aezrtdqy9kpdvnhuml</column>
+      <column name="created_at">2023-01-20 11:45:00</column>
+      <column name="updated_at">2023-01-20 11:45:00</column>
+    </insert>
+
+    <insert tableName="jobs">
+      <column name="id">job_eysl9r8bhyis7y3lgso00</column>
+      <column name="version">2</column>
+      <column name="uid">job_uid_f9krvh7djop51s2z8ta</column>
+      <column name="status">active</column>
+      <column name="rate">32.50</column>
+      <column name="title">ML Engineer</column>
+      <column name="company_id">comp_cab5i8o0rvh5arskod</column>
+      <column name="contractor_id">cont_aezrtdqy9kpdvnhuml</column>
+      <column name="created_at">2023-02-15 16:30:00</column>
+      <column name="updated_at">2023-02-15 16:30:00</column>
+    </insert>
+
+    <!-- UI Designer position -->
+    <insert tableName="jobs">
+      <column name="id">job_pwq7nl3eky5u2t9oxzm</column>
+      <column name="version">1</column>
+      <column name="uid">job_uid_r6tmn8f2jkl4p9v7xze</column>
+      <column name="status">active</column>
+      <column name="rate">25.00</column>
+      <column name="title">UI Designer</column>
+      <column name="company_id">comp_cab5i8o0rvh5arskod</column>
+      <column name="contractor_id">cont_bp12mxfq83nrvsh4kl</column>
+      <column name="created_at">2023-03-05 13:20:00</column>
+      <column name="updated_at">2023-03-05 13:20:00</column>
+    </insert>
+
+    <!-- Data Engineer position with status changes -->
+    <insert tableName="jobs">
+      <column name="id">job_td24kl7cpq9mnr8vzx</column>
+      <column name="version">1</column>
+      <column name="uid">job_uid_9wpm7jz2ktn4v6xy3fe</column>
+      <column name="status">active</column>
+      <column name="rate">28.00</column>
+      <column name="title">Data Engineer</column>
+      <column name="company_id">comp_dfe3j8g7hrs2vbnkqz</column>
+      <column name="contractor_id">cont_gh67rtpq21lmzxnvbd</column>
+      <column name="created_at">2023-02-10 09:15:00</column>
+      <column name="updated_at">2023-02-10 09:15:00</column>
+    </insert>
+
+    <insert tableName="jobs">
+      <column name="id">job_td24kl7cpq9mnr8vzx</column>
+      <column name="version">2</column>
+      <column name="uid">job_uid_5mnb8rtq6zpv3kxf1lg</column>
+      <column name="status">extended</column>
+      <column name="rate">28.00</column>
+      <column name="title">Data Engineer</column>
+      <column name="company_id">comp_dfe3j8g7hrs2vbnkqz</column>
+      <column name="contractor_id">cont_gh67rtpq21lmzxnvbd</column>
+      <column name="created_at">2023-03-01 10:45:00</column>
+      <column name="updated_at">2023-03-01 10:45:00</column>
+    </insert>
+
+    <insert tableName="jobs">
+      <column name="id">job_td24kl7cpq9mnr8vzx</column>
+      <column name="version">3</column>
+      <column name="uid">job_uid_2kvhm7tpf9rz4jx3cqn</column>
+      <column name="status">completed</column>
+      <column name="rate">28.00</column>
+      <column name="title">Data Engineer</column>
+      <column name="company_id">comp_dfe3j8g7hrs2vbnkqz</column>
+      <column name="contractor_id">cont_gh67rtpq21lmzxnvbd</column>
+      <column name="created_at">2023-04-05 17:30:00</column>
+      <column name="updated_at">2023-04-05 17:30:00</column>
+    </insert>
+  </changeSet>
+</databaseChangeLog>
