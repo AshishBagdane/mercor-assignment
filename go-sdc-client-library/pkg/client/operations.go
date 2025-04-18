@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strconv"
+	"strings"
 
 	"github.com/mercor-ai/go-sdc-client-library/pkg/model"
 
@@ -237,80 +239,184 @@ func (c *Client) Query(ctx context.Context, entityType string, conditions map[st
 // Update creates or updates an entity in the SCD service
 func (c *Client) Update(ctx context.Context, entityType string, entity interface{}) (map[string]interface{}, error) {
 	var result map[string]interface{}
+	var retries int
+	maxRetries := c.config.MaxRetries * 2 // Double the retries for concurrent modification errors
 
-	// Convert entity to a map for easier manipulation
-	entityData, err := entityToMap(entity)
-	if err != nil {
-		return nil, fmt.Errorf("failed to convert entity to map: %w", err)
-	}
+	// Helper function to handle the update process
+	updateFn := func() error {
+		var entityMap map[string]interface{}
+		var id string
 
-	err = c.withRetry(ctx, func(ctx context.Context) error {
-		// Extract ID and version from entity data
-		id, _ := entityData["id"].(string)
+		// Convert the entity to a map if it's not already one
+		switch e := entity.(type) {
+		case map[string]interface{}:
+			entityMap = e
+			if idVal, ok := e["id"]; ok {
+				id = fmt.Sprintf("%v", idVal)
+			}
+		default:
+			// Convert the entity to JSON then to a map
+			jsonData, err := json.Marshal(entity)
+			if err != nil {
+				return fmt.Errorf("failed to marshal entity: %w", err)
+			}
+			err = json.Unmarshal(jsonData, &entityMap)
+			if err != nil {
+				return fmt.Errorf("failed to unmarshal entity: %w", err)
+			}
+
+			// Extract the ID
+			if idVal, ok := entityMap["id"]; ok {
+				id = fmt.Sprintf("%v", idVal)
+			}
+		}
+
+		if id == "" {
+			return fmt.Errorf("entity ID is required for update")
+		}
+
+		// For retries, get the latest version first
+		if retries > 0 {
+			latestVersion, err := c.GetLatestVersion(ctx, entityType, id)
+			if err != nil {
+				if strings.Contains(err.Error(), "Entity not found") {
+					// If entity not found, try to create it
+					log.Printf("Entity not found, creating new entity with ID: %s", id)
+					// Make sure we have all required fields
+					if entityMap != nil {
+						// Set version to 1 for creating a new entity
+						entityMap["version"] = 1
+					}
+				} else {
+					return fmt.Errorf("failed to get latest version: %w", err)
+				}
+			} else {
+				// Update the version in our entity map
+				if version, ok := latestVersion["version"]; ok {
+					entityMap["version"] = version
+				}
+				if uid, ok := latestVersion["uid"]; ok {
+					entityMap["uid"] = uid
+				}
+			}
+		}
 
 		// Create the request
 		req := &pb.UpdateRequest{
 			EntityType: entityType,
 			Id:         id,
-			Fields:     make(map[string]string),
+			Fields:     make(map[string]string), // Add fields map
 		}
 
-		// Convert all fields to strings for the request
-		for k, v := range entityData {
-			if k != "id" && k != "type" && k != "uid" {
-				switch val := v.(type) {
-				case string:
-					req.Fields[k] = val
-				case float64:
-					req.Fields[k] = strconv.FormatFloat(val, 'f', -1, 64)
-				case int:
-					req.Fields[k] = strconv.Itoa(val)
-				case int32:
-					req.Fields[k] = strconv.Itoa(int(val))
-				case int64:
-					req.Fields[k] = strconv.FormatInt(val, 10)
-				case bool:
-					req.Fields[k] = strconv.FormatBool(val)
-				default:
-					jsonVal, err := json.Marshal(val)
-					if err != nil {
-						return fmt.Errorf("failed to marshal field %s: %w", k, err)
+		// Fill fields map for non-standard fields
+		if entityMap != nil {
+			for k, v := range entityMap {
+				if k != "id" && k != "version" && k != "uid" && k != "type" && k != "createdAt" && k != "updatedAt" {
+					switch val := v.(type) {
+					case string:
+						req.Fields[k] = val
+					case bool:
+						req.Fields[k] = strconv.FormatBool(val)
+					case int:
+						req.Fields[k] = strconv.Itoa(val)
+					case int64:
+						req.Fields[k] = strconv.FormatInt(val, 10)
+					case float64:
+						req.Fields[k] = strconv.FormatFloat(val, 'f', -1, 64)
+					default:
+						jsonBytes, err := json.Marshal(val)
+						if err == nil {
+							req.Fields[k] = string(jsonBytes)
+						}
 					}
-					req.Fields[k] = string(jsonVal)
 				}
 			}
 		}
 
-		// Serialize the entire entity as binary data
-		entityJSON, err := json.Marshal(entityData)
-		if err != nil {
-			return fmt.Errorf("failed to marshal entity: %w", err)
-		}
-
-		// Create Entity object
-		pbEntity := &pb.Entity{
-			Type: entityType,
-			Id:   id,
-			Data: entityJSON,
-		}
-
-		// Set version if available
-		if v, ok := entityData["version"]; ok {
-			switch version := v.(type) {
-			case int:
-				pbEntity.Version = int32(version)
-			case int32:
-				pbEntity.Version = version
-			case float64:
-				pbEntity.Version = int32(version)
+		// Set the entity if provided
+		if len(entityMap) > 0 {
+			pbEntity := &pb.Entity{
+				Type:    entityType,
+				Id:      id,
+				Version: 0,  // This will be set by the server
+				Uid:     "", // This will be set by the server
 			}
-		}
 
-		req.Entity = pbEntity
+			if version, ok := entityMap["version"]; ok {
+				// Convert version to int32
+				switch v := version.(type) {
+				case int:
+					pbEntity.Version = int32(v)
+				case int32:
+					pbEntity.Version = v
+				case int64:
+					pbEntity.Version = int32(v)
+				case float64:
+					pbEntity.Version = int32(v)
+				default:
+					// Try to parse as string
+					if vStr, ok := version.(string); ok {
+						if vInt, err := strconv.Atoi(vStr); err == nil {
+							pbEntity.Version = int32(vInt)
+						}
+					}
+				}
+			}
+
+			if uid, ok := entityMap["uid"]; ok {
+				if uidStr, ok := uid.(string); ok {
+					pbEntity.Uid = uidStr
+				}
+			}
+
+			if createdAt, ok := entityMap["createdAt"]; ok {
+				switch ca := createdAt.(type) {
+				case int64:
+					pbEntity.CreatedAt = ca
+				case float64:
+					pbEntity.CreatedAt = int64(ca)
+				case string:
+					if caInt, err := strconv.ParseInt(ca, 10, 64); err == nil {
+						pbEntity.CreatedAt = caInt
+					}
+				}
+			}
+
+			if updatedAt, ok := entityMap["updatedAt"]; ok {
+				switch ua := updatedAt.(type) {
+				case int64:
+					pbEntity.UpdatedAt = ua
+				case float64:
+					pbEntity.UpdatedAt = int64(ua)
+				case string:
+					if uaInt, err := strconv.ParseInt(ua, 10, 64); err == nil {
+						pbEntity.UpdatedAt = uaInt
+					}
+				}
+			}
+
+			req.Entity = pbEntity
+		}
 
 		// Make the gRPC call
 		resp, err := c.scdClient.Update(ctx, req)
 		if err != nil {
+			// Check if it's a concurrent modification error
+			if retries < maxRetries && IsConcurrentModificationError(err) {
+				retries++
+				return fmt.Errorf("concurrent modification detected, retrying (%d of %d): %w", retries, maxRetries, err)
+			}
+			// Check if it's an entity not found error
+			if strings.Contains(err.Error(), "Entity not found") && retries < 2 {
+				retries++
+				// Try creating the entity
+				log.Printf("Entity not found, attempting to create it (retry %d)", retries)
+				// Reset version to 1
+				if entityMap != nil {
+					entityMap["version"] = 1
+				}
+				return err
+			}
 			return err
 		}
 
@@ -331,13 +437,13 @@ func (c *Client) Update(ctx context.Context, entityType string, entity interface
 
 		// If there's additional data, unmarshal it
 		if len(resp.Entity.Data) > 0 {
-			var respData map[string]interface{}
-			if err := json.Unmarshal(resp.Entity.Data, &respData); err != nil {
-				return fmt.Errorf("failed to unmarshal response data: %w", err)
+			var entityData map[string]interface{}
+			if err := json.Unmarshal(resp.Entity.Data, &entityData); err != nil {
+				return fmt.Errorf("failed to unmarshal entity data: %w", err)
 			}
 
 			// Merge entity data into result
-			for k, v := range respData {
+			for k, v := range entityData {
 				// Don't overwrite the basic fields
 				if k != "id" && k != "type" && k != "version" &&
 					k != "uid" && k != "createdAt" && k != "updatedAt" {
@@ -347,6 +453,11 @@ func (c *Client) Update(ctx context.Context, entityType string, entity interface
 		}
 
 		return nil
+	}
+
+	// Execute the update with retries
+	err := c.withRetry(ctx, func(ctx context.Context) error {
+		return updateFn()
 	})
 
 	if err != nil {
@@ -354,6 +465,12 @@ func (c *Client) Update(ctx context.Context, entityType string, entity interface
 	}
 
 	return result, nil
+}
+
+// IsConcurrentModificationError checks if an error is a concurrent modification error
+func IsConcurrentModificationError(err error) bool {
+	return err != nil && (strings.Contains(err.Error(), "Entity was modified by another transaction") ||
+		strings.Contains(err.Error(), "CONCURRENT_MODIFICATION"))
 }
 
 // BatchGet retrieves multiple entities at once

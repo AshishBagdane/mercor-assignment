@@ -13,6 +13,12 @@ type SCDModel struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+// EntityType returns the default entity type name
+// This should be overridden by specific model implementations
+func (m *SCDModel) EntityType() string {
+	return "entity" // Default value, should be overridden
+}
+
 // Versioned is an interface that all SCD models must implement
 type Versioned interface {
 	GetID() string

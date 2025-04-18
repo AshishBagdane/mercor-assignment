@@ -142,14 +142,17 @@ func demoDirectJobOperations(ctx context.Context, c *client.Client) {
 		jobID = createdJob["id"].(string)
 	}
 
-	// Example 4: Update the newly created job
-	fmt.Println("\nUpdating the new job's rate...")
-	updatedJob := map[string]interface{}{
-		"id":      jobID,
-		"rate":    80.0, // Increase the rate
-		"version": 1,    // Should be version 1 for a new job
+	// Example 4: Update the newly created job using safe update pattern
+	fmt.Println("\nUpdating the new job's rate using safe update pattern...")
+
+	// Define only the fields we want to update
+	jobUpdate := map[string]interface{}{
+		"id":   jobID,
+		"rate": 80.0, // Increase the rate
 	}
-	result, err := c.Update(ctx, client.EntityTypeJob, updatedJob)
+
+	// Get the latest version before updating
+	result, err := UpdateEntitySafely(ctx, c, client.EntityTypeJob, jobUpdate)
 	if err != nil {
 		fmt.Printf("Error updating job: %v\n", err)
 	} else {
@@ -198,16 +201,15 @@ func demoDirectJobOperations(ctx context.Context, c *client.Client) {
 		}
 	}
 
-	// Example 7: Batch update jobs
-	fmt.Println("\nPerforming batch update operation...")
-	jobsToUpdate := []interface{}{
-		map[string]interface{}{
-			"id":      jobID,
-			"status":  "completed",
-			"version": 2, // After our previous update
+	// Example 7: Batch update jobs using safe update pattern
+	fmt.Println("\nPerforming batch update operation using safe update pattern...")
+	jobsToUpdate := []map[string]interface{}{
+		{
+			"id":     jobID,
+			"status": "completed",
 		},
 	}
-	batchUpdateResult, err := c.BatchUpdate(ctx, client.EntityTypeJob, jobsToUpdate)
+	batchUpdateResult, err := BatchUpdateEntitiesSafely(ctx, c, client.EntityTypeJob, jobsToUpdate)
 	if err != nil {
 		fmt.Printf("Error in batch update: %v\n", err)
 	} else {

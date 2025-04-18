@@ -16,12 +16,16 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.dao.OptimisticLockingFailureException;
 
 /**
  * Abstract implementation of the SCDService interface Provides common
@@ -32,16 +36,22 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public abstract class AbstractSCDService<T extends SCDEntityDTO, E extends SCDEntity> implements SCDService<T> {
 
-  protected final SCDRepository<E> repository;
-  protected final SCDMapper<T, E> mapper;
+  private static final Logger log = LoggerFactory.getLogger(AbstractSCDService.class);
+  private static final int MAX_RETRIES = 3;
 
-  protected AbstractSCDService(SCDRepository<E> repository, SCDMapper<T, E> mapper) {
+  private final SCDRepository<E> repository;
+  private final SCDMapper<T, E> mapper;
+
+  public AbstractSCDService(SCDRepository<E> repository, SCDMapper<T, E> mapper) {
     this.repository = repository;
     this.mapper = mapper;
   }
 
   @Override
   public T getLatestVersion(String id) {
+    if (id == null || id.isEmpty()) {
+      throw new SCDException("Entity ID cannot be null or empty", "INVALID_ENTITY_ID");
+    }
     E entity = repository.findFirstByIdOrderByVersionDesc(id)
         .orElseThrow(() -> new EntityNotFoundException("Entity not found with ID: " + id));
     return mapper.toDto(entity);
@@ -49,6 +59,9 @@ public abstract class AbstractSCDService<T extends SCDEntityDTO, E extends SCDEn
 
   @Override
   public List<T> getVersionHistory(String id) {
+    if (id == null || id.isEmpty()) {
+      throw new SCDException("Entity ID cannot be null or empty", "INVALID_ENTITY_ID");
+    }
     List<E> entities = repository.findByIdOrderByVersionDesc(id);
     if (entities.isEmpty()) {
       throw new EntityNotFoundException("Entity not found with ID: " + id);
@@ -78,12 +91,31 @@ public abstract class AbstractSCDService<T extends SCDEntityDTO, E extends SCDEn
     List<E> results;
     try {
       if (queryRequest.isLatestVersionOnly()) {
-        results = repository.findLatestVersions(spec, sort,
+        // Get all latest versions first
+        List<E> latestVersions = repository.findLatestVersions(null, sort,
             queryRequest.getOffset(), queryRequest.getLimit());
+
+        // Then manually apply the specification if one was provided
+        if (spec != null) {
+          results = repository.findAll(spec);
+
+          // Only keep entities that are both in the latest versions and match the
+          // specification
+          Set<String> latestIds = latestVersions.stream()
+              .map(e -> e.getId() + "_" + e.getVersion())
+              .collect(Collectors.toSet());
+
+          results = results.stream()
+              .filter(e -> latestIds.contains(e.getId() + "_" + e.getVersion()))
+              .collect(Collectors.toList());
+        } else {
+          results = latestVersions;
+        }
       } else {
         results = repository.findAll(spec, sort);
       }
     } catch (Exception e) {
+      log.error("Error executing query: {}", e.getMessage(), e);
       throw new SCDException("Error executing query: " + e.getMessage(), e, "QUERY_ERROR");
     }
 
@@ -93,19 +125,63 @@ public abstract class AbstractSCDService<T extends SCDEntityDTO, E extends SCDEn
   @Override
   @Transactional
   public T create(T dto) {
+    if (dto == null) {
+      throw new SCDException("Entity cannot be null", "INVALID_ENTITY");
+    }
+
+    // Check if entity ID is provided
+    if (dto.getId() == null || dto.getId().isEmpty()) {
+      // Generate a new ID if not provided
+      dto.setId(generateEntityId());
+    }
+
+    // Set initial values
     E entity = mapper.toEntity(dto);
     entity.setVersion(1);
     entity.setUid(generateUid(entity));
     entity.setCreatedAt(new Date());
     entity.setUpdatedAt(new Date());
 
-    E savedEntity = repository.save(entity);
-    return mapper.toDto(savedEntity);
+    try {
+      E savedEntity = repository.save(entity);
+      return mapper.toDto(savedEntity);
+    } catch (Exception e) {
+      log.error("Error creating entity: {}", e.getMessage(), e);
+      throw new SCDException("Error creating entity: " + e.getMessage(), e, "CREATE_ERROR");
+    }
   }
 
   @Override
   @Transactional
   public T update(String id, SCDUpdateRequest<T> updateRequest) {
+    int retries = 0;
+    int maxRetries = MAX_RETRIES * 2; // Double the retries for concurrent issues
+
+    while (true) {
+      try {
+        return executeUpdate(id, updateRequest);
+      } catch (OptimisticLockingFailureException e) {
+        if (retries < maxRetries) {
+          retries++;
+          log.warn("Entity was modified by another transaction. Retrying ({}/{})", retries, maxRetries);
+          try {
+            // Better exponential backoff with more jitter
+            long sleepTime = (long) (Math.pow(2, retries) * 50 + Math.random() * 100 * retries);
+            Thread.sleep(sleepTime);
+          } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            throw new SCDException("Update interrupted", ie, "UPDATE_INTERRUPTED");
+          }
+        } else {
+          throw new SCDException("Entity was modified by another transaction. Please retry with latest version.",
+              e, "CONCURRENT_MODIFICATION");
+        }
+      }
+    }
+  }
+
+  @Transactional
+  private T executeUpdate(String id, SCDUpdateRequest<T> updateRequest) {
     try {
       // Validate request
       if (id == null || id.isEmpty()) {
@@ -118,12 +194,8 @@ public abstract class AbstractSCDService<T extends SCDEntityDTO, E extends SCDEn
       }
 
       // Check if the entity exists
-      boolean entityExists = false;
-      try {
-        entityExists = repository.findFirstByIdOrderByVersionDesc(id).isPresent();
-      } catch (Exception e) {
-        // Ignore exceptions and treat as entity not existing
-      }
+      Optional<E> existingEntityOpt = repository.findFirstByIdOrderByVersionDesc(id);
+      boolean entityExists = existingEntityOpt.isPresent();
 
       if (!entityExists) {
         // Entity doesn't exist, create a new one (upsert behavior)
@@ -140,8 +212,7 @@ public abstract class AbstractSCDService<T extends SCDEntityDTO, E extends SCDEn
       }
 
       // Entity exists, fetch the latest version
-      E latestEntity = repository.findFirstByIdOrderByVersionDesc(id)
-          .orElseThrow(() -> new EntityNotFoundException("Entity not found with ID: " + id));
+      E latestEntity = existingEntityOpt.get();
 
       // Create new version
       E newVersionEntity = createNewVersion(latestEntity);
@@ -166,8 +237,7 @@ public abstract class AbstractSCDService<T extends SCDEntityDTO, E extends SCDEn
       E savedEntity = repository.save(newVersionEntity);
       return mapper.toDto(savedEntity);
     } catch (org.springframework.dao.OptimisticLockingFailureException e) {
-      throw new SCDException("Entity was modified by another transaction. Please retry with latest version.", e,
-          "CONCURRENT_MODIFICATION");
+      throw e; // Re-throw to be caught by the retry mechanism
     } catch (org.springframework.dao.DataIntegrityViolationException e) {
       throw new SCDException("Data integrity violation during update. Check unique constraints.", e,
           "DATA_INTEGRITY_VIOLATION");
@@ -234,17 +304,19 @@ public abstract class AbstractSCDService<T extends SCDEntityDTO, E extends SCDEn
           .build();
     }
 
-    // Process entities one by one for better error handling
+    // Process entities individually with a much more isolated approach
     for (T dto : batchUpdateRequest.getEntities()) {
       try {
-        SCDUpdateRequest<T> updateRequest = new SCDUpdateRequest<>();
-        updateRequest.setEntity(dto);
+        // Create a completely isolated update request for each entity
+        SCDUpdateRequest<T> singleEntityRequest = new SCDUpdateRequest<>();
+        singleEntityRequest.setEntity(dto);
 
         if (batchUpdateRequest.getCommonFields() != null && !batchUpdateRequest.getCommonFields().isEmpty()) {
-          updateRequest.setFields(new HashMap<>(batchUpdateRequest.getCommonFields()));
+          singleEntityRequest.setFields(new HashMap<>(batchUpdateRequest.getCommonFields()));
         }
 
-        T updatedEntity = update(dto.getId(), updateRequest);
+        // Use a completely new transaction with REQUIRES_NEW propagation
+        T updatedEntity = processEntityWithNewTransaction(dto.getId(), singleEntityRequest);
         updatedEntities.add(updatedEntity);
       } catch (Exception e) {
         String errorMessage = e.getMessage();
@@ -252,6 +324,7 @@ public abstract class AbstractSCDService<T extends SCDEntityDTO, E extends SCDEn
           errorMessage = ((SCDException) e).getErrorCode() + ": " + e.getMessage();
         }
         errors.put(dto.getId(), errorMessage);
+        log.error("Error updating entity {} in batch: {}", dto.getId(), errorMessage, e);
       }
     }
 
@@ -264,59 +337,122 @@ public abstract class AbstractSCDService<T extends SCDEntityDTO, E extends SCDEn
   }
 
   /**
-   * Create a specification based on the query request
-   *
+   * Process an entity update in a completely new transaction to ensure isolation
+   * 
+   * @param id            The entity ID
+   * @param updateRequest The update request
+   * @return The updated entity
+   */
+  @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
+  protected T processEntityWithNewTransaction(String id, SCDUpdateRequest<T> updateRequest) {
+    try {
+      // Try to execute the update with retries for concurrent modifications
+      int retries = 0;
+      int maxRetries = MAX_RETRIES * 2;
+
+      while (true) {
+        try {
+          return executeUpdate(id, updateRequest);
+        } catch (OptimisticLockingFailureException e) {
+          if (retries < maxRetries) {
+            retries++;
+            log.warn("Entity was modified by another transaction in batch. Retrying ({}/{})", retries, maxRetries);
+            try {
+              // Better exponential backoff with more jitter
+              long sleepTime = (long) (Math.pow(2, retries) * 50 + Math.random() * 100 * retries);
+              Thread.sleep(sleepTime);
+            } catch (InterruptedException ie) {
+              Thread.currentThread().interrupt();
+              throw new SCDException("Update interrupted", ie, "UPDATE_INTERRUPTED");
+            }
+          } else {
+            throw new SCDException(
+                "Entity was modified by another transaction in batch. Please retry with latest version.",
+                e, "CONCURRENT_MODIFICATION");
+          }
+        }
+      }
+    } catch (Exception e) {
+      // Ensure the exception doesn't cause the whole batch to roll back
+      log.error("Error in isolated transaction for entity {}: {}", id, e.getMessage(), e);
+      throw e;
+    }
+  }
+
+  /**
+   * Create a new version of an entity for update operations
+   * 
+   * @param entity The entity to create a new version from
+   * @return The new version entity
+   */
+  protected E createNewVersion(E entity) {
+    try {
+      @SuppressWarnings("unchecked")
+      E newEntity = (E) entity.getClass().getDeclaredConstructor().newInstance();
+      newEntity.setId(entity.getId());
+      newEntity.setVersion(entity.getVersion() + 1);
+      copyProperties(entity, newEntity);
+      return newEntity;
+    } catch (Exception e) {
+      throw new SCDException("Error creating new version: " + e.getMessage(), e, "VERSION_CREATION_ERROR");
+    }
+  }
+
+  /**
+   * Generate a unique ID for a new entity
+   * 
+   * @return The generated ID
+   */
+  protected String generateEntityId() {
+    // Generate a random ID with a prefix based on entity type
+    String prefix = getEntityTypePrefix();
+    String randomId = UUID.randomUUID().toString().substring(0, 20).replace("-", "");
+    return prefix + "_" + randomId;
+  }
+
+  /**
+   * Get the entity type prefix for ID generation
+   * 
+   * @return The entity type prefix
+   */
+  protected String getEntityTypePrefix() {
+    // Default implementation using class name
+    String className = this.getClass().getSimpleName().toLowerCase();
+    if (className.endsWith("serviceimpl")) {
+      className = className.substring(0, className.length() - 11);
+    }
+    return className;
+  }
+
+  /**
+   * Generate a unique UID for an entity version
+   * 
+   * @param entity The entity to generate a UID for
+   * @return The generated UID
+   */
+  protected String generateUid(E entity) {
+    return entity.getId() + "_v" + entity.getVersion() + "_" + UUID.randomUUID().toString().substring(0, 8);
+  }
+
+  /**
+   * Create a specification for querying entities based on the query request
+   * 
    * @param queryRequest The query request
    * @return The specification
    */
   protected abstract Specification<E> createSpecification(SCDQueryRequest queryRequest);
 
   /**
-   * Create a new version of an entity based on the latest version
-   *
-   * @param latestEntity The latest version of the entity
-   * @return A new entity version
-   */
-  protected E createNewVersion(E latestEntity) {
-    E newVersionEntity;
-    try {
-      newVersionEntity = (E) latestEntity.getClass().getDeclaredConstructor().newInstance();
-    } catch (Exception e) {
-      throw new SCDException("Failed to create new entity version", e);
-    }
-
-    // Copy all properties except version, uid, and dates
-    newVersionEntity.setId(latestEntity.getId());
-    newVersionEntity.setVersion(latestEntity.getVersion() + 1);
-
-    // Use reflection to copy other properties
-    copyProperties(latestEntity, newVersionEntity);
-
-    return newVersionEntity;
-  }
-
-  /**
-   * Update entity fields using a map of field names and values
-   *
+   * Update entity fields based on the provided field map
+   * 
    * @param entity The entity to update
-   * @param fields Map of field names and values
+   * @param fields The fields to update
    */
   protected abstract void updateFields(E entity, Map<String, Object> fields);
 
   /**
-   * Generate a new UID for an entity
-   *
-   * @param entity The entity
-   * @return A new UID
-   */
-  protected String generateUid(E entity) {
-    String entityType = entity.getClass().getSimpleName().toLowerCase();
-    return entityType + "_uid_" + UUID.randomUUID().toString().replace("-", "");
-  }
-
-  /**
-   * Copy properties from one entity to another
-   *
+   * Copy properties from one entity to another for versioning
+   * 
    * @param source The source entity
    * @param target The target entity
    */

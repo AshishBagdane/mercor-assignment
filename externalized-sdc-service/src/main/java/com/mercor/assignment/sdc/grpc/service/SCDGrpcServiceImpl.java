@@ -440,11 +440,37 @@ public class SCDGrpcServiceImpl extends SCDServiceGrpc.SCDServiceImplBase {
    * @return The service instance
    */
   private SCDService<?> getServiceForType(String entityType) {
-    SCDService<?> service = serviceMap.get(entityType.toLowerCase());
-    if (service == null) {
-      throw new IllegalArgumentException("Unknown entity type: " + entityType);
+    if (entityType == null || entityType.isEmpty()) {
+      throw new IllegalArgumentException("Entity type cannot be null or empty");
     }
-    return service;
+
+    // Normalize entity type to lowercase and remove underscores
+    String normalizedType = entityType.toLowerCase().replace("_", "");
+
+    // First try exact match
+    SCDService<?> service = serviceMap.get(normalizedType);
+    if (service != null) {
+      return service;
+    }
+
+    // Try alternate mappings for common variations
+    if (normalizedType.equals("paymentlineitem")) {
+      service = serviceMap.get("payment_line_item");
+      if (service != null) {
+        return service;
+      }
+    }
+
+    // Check if any service name contains the normalized type
+    for (Map.Entry<String, SCDService<?>> entry : serviceMap.entrySet()) {
+      if (entry.getKey().contains(normalizedType) || normalizedType.contains(entry.getKey())) {
+        log.warn("Using approximate entity type match: {} -> {}", entityType, entry.getKey());
+        return entry.getValue();
+      }
+    }
+
+    // No match found
+    throw new IllegalArgumentException("Unknown entity type: " + entityType);
   }
 
   /**
@@ -482,32 +508,35 @@ public class SCDGrpcServiceImpl extends SCDServiceGrpc.SCDServiceImplBase {
   private SCDEntityDTO convertEntityToDto(Entity entity, String entityType) {
     SCDEntityDTO dto;
 
-    switch (entityType.toLowerCase()) {
-      case "job":
+    String normalizedType = entityType.toLowerCase().replace("_", "");
+
+    try {
+      if (normalizedType.contains("job")) {
         dto = new JobDTO();
-        break;
-      case "timelog":
+      } else if (normalizedType.contains("timelog")) {
         dto = new TimelogDTO();
-        break;
-      case "payment_line_item":
+      } else if (normalizedType.contains("payment")) {
         dto = new PaymentLineItemDTO();
-        break;
-      default:
+      } else {
         throw new IllegalArgumentException("Unknown entity type: " + entityType);
+      }
+
+      dto.setId(entity.getId());
+      dto.setVersion(entity.getVersion());
+      dto.setUid(entity.getUid());
+      dto.setCreatedAt(new Date(entity.getCreatedAt()));
+      dto.setUpdatedAt(new Date(entity.getUpdatedAt()));
+
+      // Deserialize entity-specific data
+      if (entity.getData() != null && !entity.getData().isEmpty()) {
+        deserializeEntityData(dto, entity.getData(), entityType);
+      }
+
+      return dto;
+    } catch (Exception e) {
+      log.error("Error converting entity to DTO: {}", e.getMessage(), e);
+      throw new IllegalArgumentException("Error converting entity type: " + entityType + ": " + e.getMessage());
     }
-
-    dto.setId(entity.getId());
-    dto.setVersion(entity.getVersion());
-    dto.setUid(entity.getUid());
-    dto.setCreatedAt(new Date(entity.getCreatedAt()));
-    dto.setUpdatedAt(new Date(entity.getUpdatedAt()));
-
-    // Deserialize entity-specific data
-    if (entity.getData() != null && !entity.getData().isEmpty()) {
-      deserializeEntityData(dto, entity.getData(), entityType);
-    }
-
-    return dto;
   }
 
   /**
@@ -556,8 +585,12 @@ public class SCDGrpcServiceImpl extends SCDServiceGrpc.SCDServiceImplBase {
       return null;
     }
 
-    if (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("false")) {
-      return Boolean.parseBoolean(value);
+    if (value.equalsIgnoreCase("true")) {
+      return Boolean.TRUE;
+    }
+
+    if (value.equalsIgnoreCase("false")) {
+      return Boolean.FALSE;
     }
 
     // Check if it's a timestamp in milliseconds
@@ -609,17 +642,6 @@ public class SCDGrpcServiceImpl extends SCDServiceGrpc.SCDServiceImplBase {
       } catch (Exception e) {
         // Not a valid date format, continue
       }
-    }
-
-    // Handle list values (comma-separated)
-    if (value.startsWith("[") && value.endsWith("]")) {
-      String listContent = value.substring(1, value.length() - 1);
-      String[] items = listContent.split(",");
-      List<Object> result = new ArrayList<>();
-      for (String item : items) {
-        result.add(convertStringToTypedValue(item.trim()));
-      }
-      return result;
     }
 
     // Default to string

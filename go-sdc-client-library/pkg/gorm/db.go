@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/mercor-ai/go-sdc-client-library/pkg/client"
 	"gorm.io/gorm"
@@ -120,9 +121,26 @@ func getEntityType(model interface{}) string {
 		modelType = modelType.Elem()
 	}
 
-	// Default to lowercase struct name
+	// Check if the model implements EntityType() method
+	if typeProvider, ok := reflect.New(modelType).Interface().(interface {
+		EntityType() string
+	}); ok {
+		return typeProvider.EntityType()
+	}
+
+	// Default to lowercase struct name with special handling for known types
 	typeName := modelType.Name()
-	return convertCamelToSnake(typeName)
+	switch strings.ToLower(typeName) {
+	case "job":
+		return "job"
+	case "timelog":
+		return "timelog"
+	case "paymentlineitem":
+		return "payment_line_item"
+	default:
+		// Convert camel case to snake case for unknown types
+		return convertCamelToSnake(typeName)
+	}
 }
 
 // convertCamelToSnake converts camel case to snake case

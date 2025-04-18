@@ -18,7 +18,7 @@ func (Job) TableName() string {
 }
 
 // EntityType returns the SCD entity type for the Job model
-func (Job) EntityType() string {
+func (j *Job) EntityType() string {
 	return "job"
 }
 

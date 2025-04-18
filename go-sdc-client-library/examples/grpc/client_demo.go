@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"time"
 
@@ -114,4 +115,139 @@ func getEnvForGRPC(key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+// UpdateEntitySafely fetches the latest version of an entity before updating it
+// This ensures we're always working with the most up-to-date version to prevent optimistic locking failures
+func UpdateEntitySafely(ctx context.Context, c *client.Client, entityType string, updateData map[string]interface{}) (map[string]interface{}, error) {
+	// Extract the entity ID from the update data
+	entityID, ok := updateData["id"].(string)
+	if !ok || entityID == "" {
+		return nil, fmt.Errorf("update data must contain a valid 'id' field")
+	}
+
+	// Get the latest version of the entity
+	latestEntity, err := c.GetLatestVersion(ctx, entityType, entityID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get latest version: %w", err)
+	}
+
+	// Get the current version from the latest entity
+	currentVersion, ok := latestEntity["version"].(int32)
+	if !ok {
+		return nil, fmt.Errorf("failed to get current version from entity")
+	}
+
+	// Copy the update data and ensure we're using the correct version
+	updatedEntity := make(map[string]interface{})
+	for k, v := range updateData {
+		updatedEntity[k] = v
+	}
+
+	// Set the correct version
+	updatedEntity["version"] = currentVersion
+
+	// Perform the update with the correct version
+	return c.Update(ctx, entityType, updatedEntity)
+}
+
+// BatchUpdateEntitiesSafely fetches the latest version of multiple entities before updating them
+func BatchUpdateEntitiesSafely(ctx context.Context, c *client.Client, entityType string, entities []map[string]interface{}) (map[string]map[string]interface{}, error) {
+	// Create a slice to hold the updated entities with correct versions
+	updatedEntities := make([]interface{}, 0, len(entities))
+
+	// Get the latest version for each entity
+	for _, entity := range entities {
+		entityID, ok := entity["id"].(string)
+		if !ok || entityID == "" {
+			return nil, fmt.Errorf("entity must contain a valid 'id' field")
+		}
+
+		// Get the latest version
+		latestEntity, err := c.GetLatestVersion(ctx, entityType, entityID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get latest version for entity %s: %w", entityID, err)
+		}
+
+		// Get the current version
+		currentVersion, ok := latestEntity["version"].(int32)
+		if !ok {
+			return nil, fmt.Errorf("failed to get current version from entity %s", entityID)
+		}
+
+		// Copy the entity and ensure we're using the correct version
+		updatedEntity := make(map[string]interface{})
+		for k, v := range entity {
+			updatedEntity[k] = v
+		}
+
+		// Set the correct version
+		updatedEntity["version"] = currentVersion
+
+		// Add to the list of entities to update
+		updatedEntities = append(updatedEntities, updatedEntity)
+	}
+
+	// Perform the batch update with the correct versions
+	return c.BatchUpdate(ctx, entityType, updatedEntities)
+}
+
+// DemoSafeUpdatePattern demonstrates the recommended pattern for updating entities safely
+func DemoSafeUpdatePattern() {
+	// Initialize the SCD client
+	scdClient, err := client.NewClientWithHostPort("localhost", 9090)
+	if err != nil {
+		log.Fatalf("Failed to create SCD client: %v", err)
+	}
+	defer scdClient.Close()
+
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	fmt.Println("\n===== SAFE UPDATE PATTERN DEMO =====")
+
+	// Example: Update a job safely
+	fmt.Println("\nUpdating a job using the safe update pattern...")
+	jobID := "job_ckbk6oo4hn7pacdgcz9f" // Example job ID
+
+	// Define the update - only include fields we want to change
+	jobUpdate := map[string]interface{}{
+		"id":     jobID,
+		"status": "extended",
+		"rate":   85.0,
+	}
+
+	// Use the safe update pattern
+	updatedJob, err := UpdateEntitySafely(ctx, scdClient, client.EntityTypeJob, jobUpdate)
+	if err != nil {
+		fmt.Printf("Error updating job: %v\n", err)
+	} else {
+		fmt.Printf("Job updated successfully: ID=%s, Version=%v, Status=%v, Rate=%v\n",
+			updatedJob["id"], updatedJob["version"], updatedJob["status"], updatedJob["rate"])
+	}
+
+	// Example: Batch update multiple entities safely
+	fmt.Println("\nPerforming safe batch update operation...")
+	entitiesToUpdate := []map[string]interface{}{
+		{
+			"id":     jobID,
+			"status": "active",
+		},
+		// Add more entities if needed
+	}
+
+	// Use the safe batch update pattern
+	batchResult, err := BatchUpdateEntitiesSafely(ctx, scdClient, client.EntityTypeJob, entitiesToUpdate)
+	if err != nil {
+		fmt.Printf("Error in batch update: %v\n", err)
+	} else {
+		fmt.Printf("Batch update completed for %d entities:\n", len(batchResult))
+		for id, data := range batchResult {
+			fmt.Printf("  Entity %s: New Version=%v, Status=%v\n",
+				id, data["version"], data["status"])
+		}
+	}
+
+	fmt.Println("\nSafe update pattern demo completed!")
 }

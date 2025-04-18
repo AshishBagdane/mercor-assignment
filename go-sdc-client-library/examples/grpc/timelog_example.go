@@ -201,22 +201,14 @@ func demoDirectTimelogOperations(ctx context.Context, c *client.Client) {
 
 	// Example 5: Adjust a timelog
 	fmt.Println("\nAdjusting timelog duration...")
-	// First get the current version
-	currentVersion := int32(1)
-	if timelogData != nil {
-		if v, ok := timelogData["version"].(int32); ok {
-			currentVersion = v
-		}
-	}
 
-	// Create an adjusted version
+	// Create an adjusted version using the safe update pattern
 	updatedTimelog := map[string]interface{}{
 		"id":       timelogID,
-		"version":  currentVersion,
 		"duration": int64(1800000), // 30 minutes in milliseconds
 		"type":     "adjusted",
 	}
-	result, err := c.Update(ctx, "timelog", updatedTimelog)
+	result, err := UpdateEntitySafely(ctx, c, "timelog", updatedTimelog)
 	if err != nil {
 		fmt.Printf("Error updating timelog: %v\n", err)
 	} else {
@@ -404,10 +396,6 @@ func demoGormTimelogOperations(db *scdGorm.DB) {
 		fmt.Println("\nAdjusting timelog duration...")
 		timelog := timelogs[0]
 		timelogID := timelog["id"].(string)
-		currentVersion := int32(1)
-		if v, ok := timelog["version"].(int32); ok {
-			currentVersion = v
-		}
 
 		currentDuration := int64(0)
 		if d, ok := timelog["duration"].(int64); ok {
@@ -416,15 +404,14 @@ func demoGormTimelogOperations(db *scdGorm.DB) {
 
 		adjustedDuration := currentDuration * 90 / 100 // Reduce by 10%
 
-		// Update using the Update gRPC method
+		// Update using the safe update pattern
 		updatedTimelog := map[string]interface{}{
 			"id":       timelogID,
-			"version":  currentVersion,
 			"duration": adjustedDuration,
 			"type":     "adjusted",
 		}
 
-		result, err := scdClient.Update(ctx, "timelog", updatedTimelog)
+		result, err := UpdateEntitySafely(ctx, scdClient, "timelog", updatedTimelog)
 		if err != nil {
 			fmt.Printf("Error adjusting timelog: %v\n", err)
 		} else {

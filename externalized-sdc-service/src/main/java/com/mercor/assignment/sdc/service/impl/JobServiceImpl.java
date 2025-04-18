@@ -13,18 +13,22 @@ import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Predicate;
 import java.math.BigDecimal;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Implementation of the JobService interface
  */
 @Service
+@Slf4j
 public class JobServiceImpl extends AbstractSCDService<JobDTO, Job> implements JobService {
 
   private final JobRepository jobRepository;
@@ -127,6 +131,10 @@ public class JobServiceImpl extends AbstractSCDService<JobDTO, Job> implements J
         return predicate;
       }
 
+      // Keep track of processed field names to avoid duplicate processing
+      Set<String> processedFields = new HashSet<>();
+
+      // Process boolean conditions first
       for (Map.Entry<String, Object> entry : conditions.entrySet()) {
         String key = entry.getKey();
         Object value = entry.getValue();
@@ -143,133 +151,157 @@ public class JobServiceImpl extends AbstractSCDService<JobDTO, Job> implements J
         // Convert snake_case field names to camelCase for JPA
         String jpaFieldName = SCDQueryRequest.toCamelCase(fieldName);
 
+        // Always convert boolean strings to actual Boolean objects
+        if (value instanceof String &&
+            ("true".equalsIgnoreCase((String) value) || "false".equalsIgnoreCase((String) value))) {
+          value = Boolean.parseBoolean((String) value);
+        }
+
+        if (value instanceof Boolean) {
+          try {
+            Path<Boolean> path = root.get(jpaFieldName);
+            boolean boolValue = (Boolean) value;
+
+            if ("!=".equals(operator)) {
+              predicate = criteriaBuilder.and(predicate, criteriaBuilder.notEqual(path, boolValue));
+            } else {
+              predicate = criteriaBuilder.and(predicate, criteriaBuilder.equal(path, boolValue));
+            }
+
+            // Mark this field as processed
+            processedFields.add(jpaFieldName);
+          } catch (Exception e) {
+            throw new SCDException("Error processing boolean field " + fieldName + ": " + e.getMessage(),
+                "SPECIFICATION_ERROR");
+          }
+        }
+      }
+
+      // Process special case fields with strongly-typed handling
+      // Rate comparisons
+      if (conditions.containsKey("rate") && !processedFields.contains("rate")) {
+        Object value = conditions.get("rate");
+        BigDecimal numericValue;
+
+        if (value instanceof BigDecimal) {
+          numericValue = (BigDecimal) value;
+        } else if (value instanceof Number) {
+          numericValue = BigDecimal.valueOf(((Number) value).doubleValue());
+        } else {
+          numericValue = new BigDecimal(value.toString());
+        }
+
+        predicate = criteriaBuilder.and(predicate,
+            criteriaBuilder.equal(root.get("rate"), numericValue));
+        processedFields.add("rate");
+      } else if (conditions.containsKey("minRate") && !processedFields.contains("rate")) {
+        Object value = conditions.get("minRate");
+        BigDecimal numericValue;
+
+        if (value instanceof BigDecimal) {
+          numericValue = (BigDecimal) value;
+        } else if (value instanceof Number) {
+          numericValue = BigDecimal.valueOf(((Number) value).doubleValue());
+        } else {
+          numericValue = new BigDecimal(value.toString());
+        }
+
+        predicate = criteriaBuilder.and(predicate,
+            criteriaBuilder.greaterThanOrEqualTo(root.get("rate"), numericValue));
+        processedFields.add("rate");
+      } else if (conditions.containsKey("maxRate") && !processedFields.contains("rate")) {
+        Object value = conditions.get("maxRate");
+        BigDecimal numericValue;
+
+        if (value instanceof BigDecimal) {
+          numericValue = (BigDecimal) value;
+        } else if (value instanceof Number) {
+          numericValue = BigDecimal.valueOf(((Number) value).doubleValue());
+        } else {
+          numericValue = new BigDecimal(value.toString());
+        }
+
+        predicate = criteriaBuilder.and(predicate,
+            criteriaBuilder.lessThanOrEqualTo(root.get("rate"), numericValue));
+        processedFields.add("rate");
+      }
+
+      // Company ID handling
+      if (conditions.containsKey("companyId") && !processedFields.contains("companyId")) {
+        predicate = criteriaBuilder.and(predicate,
+            criteriaBuilder.equal(root.get("companyId"), conditions.get("companyId").toString()));
+        processedFields.add("companyId");
+      }
+
+      // Contractor ID handling
+      if (conditions.containsKey("contractorId") && !processedFields.contains("contractorId")) {
+        predicate = criteriaBuilder.and(predicate,
+            criteriaBuilder.equal(root.get("contractorId"), conditions.get("contractorId").toString()));
+        processedFields.add("contractorId");
+      }
+
+      // Status handling
+      if (conditions.containsKey("status") && !processedFields.contains("status")) {
+        predicate = criteriaBuilder.and(predicate,
+            criteriaBuilder.equal(root.get("status"), conditions.get("status").toString()));
+        processedFields.add("status");
+      }
+
+      // Title handling - uses LIKE for partial matching
+      if (conditions.containsKey("title") && !processedFields.contains("title")) {
+        predicate = criteriaBuilder.and(predicate,
+            criteriaBuilder.like(root.get("title").as(String.class),
+                "%" + conditions.get("title").toString() + "%"));
+        processedFields.add("title");
+      }
+
+      // Process any remaining fields not handled above with generic handling
+      for (Map.Entry<String, Object> entry : conditions.entrySet()) {
+        String key = entry.getKey();
+        Object value = entry.getValue();
+
+        // Skip null values and already processed fields
+        if (value == null) {
+          continue;
+        }
+
+        // Parse the condition key to extract field name and operator
+        String[] parsedKey = SCDQueryRequest.parseConditionKey(key);
+        String fieldName = parsedKey[0];
+        String operator = parsedKey[1];
+
+        // Convert snake_case field names to camelCase for JPA
+        String jpaFieldName = SCDQueryRequest.toCamelCase(fieldName);
+
+        // Skip already processed fields
+        if (processedFields.contains(jpaFieldName)) {
+          continue;
+        }
+
+        // Handle any remaining conditions
         try {
           Path<Object> path = root.get(jpaFieldName);
 
           switch (operator) {
             case ">":
-              if (jpaFieldName.equals("rate")) {
-                predicate = criteriaBuilder.and(predicate,
-                    criteriaBuilder.greaterThan(path.as(BigDecimal.class), new BigDecimal(value.toString())));
-              } else if (value instanceof Number) {
-                // Handle different numeric types
-                if (value instanceof Integer) {
-                  predicate = criteriaBuilder.and(predicate,
-                      criteriaBuilder.greaterThan(path.as(Integer.class), (Integer) value));
-                } else if (value instanceof Long) {
-                  predicate = criteriaBuilder.and(predicate,
-                      criteriaBuilder.greaterThan(path.as(Long.class), (Long) value));
-                } else if (value instanceof Double) {
-                  predicate = criteriaBuilder.and(predicate,
-                      criteriaBuilder.greaterThan(path.as(Double.class), (Double) value));
-                } else if (value instanceof BigDecimal) {
-                  predicate = criteriaBuilder.and(predicate,
-                      criteriaBuilder.greaterThan(path.as(BigDecimal.class), (BigDecimal) value));
-                } else {
-                  // Default to string comparison if unknown number type
-                  predicate = criteriaBuilder.and(predicate,
-                      criteriaBuilder.greaterThan(path.as(String.class), value.toString()));
-                }
-              } else {
-                predicate = criteriaBuilder.and(predicate,
-                    criteriaBuilder.greaterThan(path.as(String.class), value.toString()));
-              }
+              predicate = criteriaBuilder.and(predicate,
+                  criteriaBuilder.greaterThan(path.as(String.class), value.toString()));
               break;
             case ">=":
-              if (jpaFieldName.equals("rate")) {
-                predicate = criteriaBuilder.and(predicate,
-                    criteriaBuilder.greaterThanOrEqualTo(path.as(BigDecimal.class), new BigDecimal(value.toString())));
-              } else if (value instanceof Number) {
-                // Handle different numeric types
-                if (value instanceof Integer) {
-                  predicate = criteriaBuilder.and(predicate,
-                      criteriaBuilder.greaterThanOrEqualTo(path.as(Integer.class), (Integer) value));
-                } else if (value instanceof Long) {
-                  predicate = criteriaBuilder.and(predicate,
-                      criteriaBuilder.greaterThanOrEqualTo(path.as(Long.class), (Long) value));
-                } else if (value instanceof Double) {
-                  predicate = criteriaBuilder.and(predicate,
-                      criteriaBuilder.greaterThanOrEqualTo(path.as(Double.class), (Double) value));
-                } else if (value instanceof BigDecimal) {
-                  predicate = criteriaBuilder.and(predicate,
-                      criteriaBuilder.greaterThanOrEqualTo(path.as(BigDecimal.class), (BigDecimal) value));
-                } else {
-                  // Default to string comparison if unknown number type
-                  predicate = criteriaBuilder.and(predicate,
-                      criteriaBuilder.greaterThanOrEqualTo(path.as(String.class), value.toString()));
-                }
-              } else {
-                predicate = criteriaBuilder.and(predicate,
-                    criteriaBuilder.greaterThanOrEqualTo(path.as(String.class), value.toString()));
-              }
+              predicate = criteriaBuilder.and(predicate,
+                  criteriaBuilder.greaterThanOrEqualTo(path.as(String.class), value.toString()));
               break;
             case "<":
-              if (jpaFieldName.equals("rate")) {
-                predicate = criteriaBuilder.and(predicate,
-                    criteriaBuilder.lessThan(path.as(BigDecimal.class), new BigDecimal(value.toString())));
-              } else if (value instanceof Number) {
-                // Handle different numeric types
-                if (value instanceof Integer) {
-                  predicate = criteriaBuilder.and(predicate,
-                      criteriaBuilder.lessThan(path.as(Integer.class), (Integer) value));
-                } else if (value instanceof Long) {
-                  predicate = criteriaBuilder.and(predicate,
-                      criteriaBuilder.lessThan(path.as(Long.class), (Long) value));
-                } else if (value instanceof Double) {
-                  predicate = criteriaBuilder.and(predicate,
-                      criteriaBuilder.lessThan(path.as(Double.class), (Double) value));
-                } else if (value instanceof BigDecimal) {
-                  predicate = criteriaBuilder.and(predicate,
-                      criteriaBuilder.lessThan(path.as(BigDecimal.class), (BigDecimal) value));
-                } else {
-                  // Default to string comparison if unknown number type
-                  predicate = criteriaBuilder.and(predicate,
-                      criteriaBuilder.lessThan(path.as(String.class), value.toString()));
-                }
-              } else {
-                predicate = criteriaBuilder.and(predicate,
-                    criteriaBuilder.lessThan(path.as(String.class), value.toString()));
-              }
+              predicate = criteriaBuilder.and(predicate,
+                  criteriaBuilder.lessThan(path.as(String.class), value.toString()));
               break;
             case "<=":
-              if (jpaFieldName.equals("rate")) {
-                predicate = criteriaBuilder.and(predicate,
-                    criteriaBuilder.lessThanOrEqualTo(path.as(BigDecimal.class), new BigDecimal(value.toString())));
-              } else if (value instanceof Number) {
-                // Handle different numeric types
-                if (value instanceof Integer) {
-                  predicate = criteriaBuilder.and(predicate,
-                      criteriaBuilder.lessThanOrEqualTo(path.as(Integer.class), (Integer) value));
-                } else if (value instanceof Long) {
-                  predicate = criteriaBuilder.and(predicate,
-                      criteriaBuilder.lessThanOrEqualTo(path.as(Long.class), (Long) value));
-                } else if (value instanceof Double) {
-                  predicate = criteriaBuilder.and(predicate,
-                      criteriaBuilder.lessThanOrEqualTo(path.as(Double.class), (Double) value));
-                } else if (value instanceof BigDecimal) {
-                  predicate = criteriaBuilder.and(predicate,
-                      criteriaBuilder.lessThanOrEqualTo(path.as(BigDecimal.class), (BigDecimal) value));
-                } else {
-                  // Default to string comparison if unknown number type
-                  predicate = criteriaBuilder.and(predicate,
-                      criteriaBuilder.lessThanOrEqualTo(path.as(String.class), value.toString()));
-                }
-              } else {
-                predicate = criteriaBuilder.and(predicate,
-                    criteriaBuilder.lessThanOrEqualTo(path.as(String.class), value.toString()));
-              }
+              predicate = criteriaBuilder.and(predicate,
+                  criteriaBuilder.lessThanOrEqualTo(path.as(String.class), value.toString()));
               break;
             case "!=":
-              if (value instanceof Boolean) {
-                predicate = criteriaBuilder.and(predicate,
-                    criteriaBuilder.notEqual(path, value));
-              } else if (jpaFieldName.equals("rate")) {
-                predicate = criteriaBuilder.and(predicate,
-                    criteriaBuilder.notEqual(path.as(BigDecimal.class), new BigDecimal(value.toString())));
-              } else {
-                predicate = criteriaBuilder.and(predicate,
-                    criteriaBuilder.notEqual(path, value));
-              }
+              predicate = criteriaBuilder.and(predicate,
+                  criteriaBuilder.notEqual(path, value));
               break;
             case "LIKE":
               predicate = criteriaBuilder.and(predicate,
@@ -277,33 +309,12 @@ public class JobServiceImpl extends AbstractSCDService<JobDTO, Job> implements J
               break;
             case "=":
             default:
-              // Handle special cases based on field and value type
-              if (jpaFieldName.equals("companyId") || jpaFieldName.equals("contractorId")
-                  || jpaFieldName.equals("status")) {
-                predicate = criteriaBuilder.and(predicate,
-                    criteriaBuilder.equal(path, value.toString()));
-              } else if (jpaFieldName.equals("rate")) {
-                predicate = criteriaBuilder.and(predicate,
-                    criteriaBuilder.equal(path.as(BigDecimal.class), new BigDecimal(value.toString())));
-              } else if (jpaFieldName.equals("title")) {
-                // For title, use LIKE for partial matching
-                predicate = criteriaBuilder.and(predicate,
-                    criteriaBuilder.like(path.as(String.class), "%" + value.toString() + "%"));
-              } else if (value instanceof Boolean) {
-                predicate = criteriaBuilder.and(predicate,
-                    criteriaBuilder.equal(path, value));
-              } else {
-                // Default case for other fields
-                predicate = criteriaBuilder.and(predicate,
-                    criteriaBuilder.equal(path, value));
-              }
+              predicate = criteriaBuilder.and(predicate,
+                  criteriaBuilder.equal(path, value));
               break;
           }
-        } catch (IllegalArgumentException e) {
-          throw new SCDException("Invalid field name: " + fieldName, "INVALID_FIELD_NAME");
         } catch (Exception e) {
-          throw new SCDException("Error creating specification for field " + fieldName + ": " + e.getMessage(),
-              "SPECIFICATION_ERROR");
+          log.warn("Error processing field {}: {}", fieldName, e.getMessage());
         }
       }
 

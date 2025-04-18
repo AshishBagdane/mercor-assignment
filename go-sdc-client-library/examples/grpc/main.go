@@ -13,6 +13,8 @@ func main() {
 	jobFlag := flag.Bool("job", false, "Run job examples")
 	timelogFlag := flag.Bool("timelog", false, "Run timelog examples")
 	paymentFlag := flag.Bool("payment", false, "Run payment line item examples")
+	safeUpdateFlag := flag.Bool("safe-update", false, "Run safe update pattern demo")
+	comprehensiveFlag := flag.Bool("comprehensive", false, "Run comprehensive example with safe update pattern using existing entities")
 	allFlag := flag.Bool("all", false, "Run all examples")
 	testFlag := flag.Bool("test", false, "Run a simple test to verify gRPC client implementation")
 
@@ -20,7 +22,7 @@ func main() {
 	flag.Parse()
 
 	// If no flags specified, default to running the test
-	if !*jobFlag && !*timelogFlag && !*paymentFlag && !*allFlag && !*testFlag {
+	if !*jobFlag && !*timelogFlag && !*paymentFlag && !*safeUpdateFlag && !*comprehensiveFlag && !*allFlag && !*testFlag {
 		*testFlag = true
 		fmt.Println("No examples specified. Running gRPC client test by default.")
 	}
@@ -72,6 +74,18 @@ func main() {
 		// Uncomment to enable payment examples:
 		fmt.Println("\nRunning payment examples...")
 		RunPaymentExamples()
+	}
+
+	if *allFlag || *safeUpdateFlag {
+		fmt.Println("\n4. Safe Update Pattern Demo:")
+		fmt.Println("\nRunning safe update pattern demo...")
+		DemoSafeUpdatePattern()
+	}
+
+	if *allFlag || *comprehensiveFlag {
+		fmt.Println("\n5. Comprehensive Safe Update Example:")
+		fmt.Println("\nRunning comprehensive example with existing entities...")
+		RunSafeUpdateExample()
 	}
 
 	fmt.Println("\nExamples completed successfully!")

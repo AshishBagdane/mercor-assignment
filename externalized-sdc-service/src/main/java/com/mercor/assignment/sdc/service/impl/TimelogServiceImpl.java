@@ -11,10 +11,13 @@ import com.mercor.assignment.sdc.repository.JobRepository;
 import com.mercor.assignment.sdc.repository.TimelogRepository;
 import com.mercor.assignment.sdc.service.TimelogService;
 import com.mercor.assignment.sdc.service.mapper.TimelogMapper;
+import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Predicate;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.domain.Specification;
@@ -122,51 +125,186 @@ public class TimelogServiceImpl extends AbstractSCDService<TimelogDTO, Timelog> 
       Predicate predicate = criteriaBuilder.conjunction();
 
       Map<String, Object> conditions = queryRequest.getConditions();
-      if (conditions != null) {
-        if (conditions.containsKey("jobUid")) {
-          predicate = criteriaBuilder.and(predicate,
-              criteriaBuilder.equal(root.get("jobUid"), conditions.get("jobUid")));
+      if (conditions == null || conditions.isEmpty()) {
+        return predicate;
+      }
+
+      // Keep track of processed field names to avoid duplicate processing
+      Set<String> processedFields = new HashSet<>();
+
+      // Process boolean conditions first
+      for (Map.Entry<String, Object> entry : conditions.entrySet()) {
+        String key = entry.getKey();
+        Object value = entry.getValue();
+
+        if (value == null) {
+          continue;
         }
 
-        if (conditions.containsKey("type")) {
-          predicate = criteriaBuilder.and(predicate,
-              criteriaBuilder.equal(root.get("type"), conditions.get("type")));
+        // Parse the condition key to extract field name and operator
+        String[] parsedKey = SCDQueryRequest.parseConditionKey(key);
+        String fieldName = parsedKey[0];
+        String operator = parsedKey[1];
+
+        // Convert snake_case field names to camelCase for JPA
+        String jpaFieldName = SCDQueryRequest.toCamelCase(fieldName);
+
+        // Always convert boolean strings to actual Boolean objects
+        if (value instanceof String
+            && ("true".equalsIgnoreCase((String) value) || "false".equalsIgnoreCase((String) value))) {
+          value = Boolean.parseBoolean((String) value);
         }
 
-        if (conditions.containsKey("minDuration")) {
+        if (value instanceof Boolean) {
+          try {
+            Path<Boolean> path = root.get(jpaFieldName);
+            boolean boolValue = (Boolean) value;
+
+            if ("!=".equals(operator)) {
+              predicate = criteriaBuilder.and(predicate, criteriaBuilder.notEqual(path, boolValue));
+            } else {
+              predicate = criteriaBuilder.and(predicate, criteriaBuilder.equal(path, boolValue));
+            }
+
+            // Mark this field as processed
+            processedFields.add(jpaFieldName);
+          } catch (Exception e) {
+            throw new SCDException("Error processing boolean field " + fieldName + ": " + e.getMessage(),
+                "SPECIFICATION_ERROR");
+          }
+        }
+      }
+
+      // Process specific non-boolean fields with strongly-typed handling
+      if (conditions.containsKey("jobUid") && !processedFields.contains("jobUid")) {
+        predicate = criteriaBuilder.and(predicate,
+            criteriaBuilder.equal(root.get("jobUid"), conditions.get("jobUid").toString()));
+        processedFields.add("jobUid");
+      }
+
+      if (conditions.containsKey("type") && !processedFields.contains("type")) {
+        predicate = criteriaBuilder.and(predicate,
+            criteriaBuilder.equal(root.get("type"), conditions.get("type").toString()));
+        processedFields.add("type");
+      }
+
+      // Duration comparisons
+      if (conditions.containsKey("minDuration") && !processedFields.contains("duration")) {
+        Object value = conditions.get("minDuration");
+        if (value instanceof Number) {
           predicate = criteriaBuilder.and(predicate,
-              criteriaBuilder.greaterThanOrEqualTo(root.get("duration"),
-                  Long.valueOf(conditions.get("minDuration").toString())));
+              criteriaBuilder.greaterThanOrEqualTo(root.get("duration").as(Long.class),
+                  ((Number) value).longValue()));
+        } else {
+          predicate = criteriaBuilder.and(predicate,
+              criteriaBuilder.greaterThanOrEqualTo(root.get("duration").as(Long.class),
+                  Long.valueOf(value.toString())));
+        }
+        processedFields.add("duration");
+      } else if (conditions.containsKey("maxDuration") && !processedFields.contains("duration")) {
+        Object value = conditions.get("maxDuration");
+        if (value instanceof Number) {
+          predicate = criteriaBuilder.and(predicate,
+              criteriaBuilder.lessThanOrEqualTo(root.get("duration").as(Long.class),
+                  ((Number) value).longValue()));
+        } else {
+          predicate = criteriaBuilder.and(predicate,
+              criteriaBuilder.lessThanOrEqualTo(root.get("duration").as(Long.class),
+                  Long.valueOf(value.toString())));
+        }
+        processedFields.add("duration");
+      }
+
+      // Time range processing
+      if (conditions.containsKey("startTimeAfter") && !processedFields.contains("timeStart")) {
+        Object value = conditions.get("startTimeAfter");
+        Long longValue = value instanceof Number ? ((Number) value).longValue() : Long.valueOf(value.toString());
+        predicate = criteriaBuilder.and(predicate,
+            criteriaBuilder.greaterThanOrEqualTo(root.get("timeStart"), longValue));
+        processedFields.add("timeStart");
+      } else if (conditions.containsKey("startTimeBefore") && !processedFields.contains("timeStart")) {
+        Object value = conditions.get("startTimeBefore");
+        Long longValue = value instanceof Number ? ((Number) value).longValue() : Long.valueOf(value.toString());
+        predicate = criteriaBuilder.and(predicate,
+            criteriaBuilder.lessThanOrEqualTo(root.get("timeStart"), longValue));
+        processedFields.add("timeStart");
+      }
+
+      if (conditions.containsKey("endTimeAfter") && !processedFields.contains("timeEnd")) {
+        Object value = conditions.get("endTimeAfter");
+        Long longValue = value instanceof Number ? ((Number) value).longValue() : Long.valueOf(value.toString());
+        predicate = criteriaBuilder.and(predicate,
+            criteriaBuilder.greaterThanOrEqualTo(root.get("timeEnd"), longValue));
+        processedFields.add("timeEnd");
+      } else if (conditions.containsKey("endTimeBefore") && !processedFields.contains("timeEnd")) {
+        Object value = conditions.get("endTimeBefore");
+        Long longValue = value instanceof Number ? ((Number) value).longValue() : Long.valueOf(value.toString());
+        predicate = criteriaBuilder.and(predicate,
+            criteriaBuilder.lessThanOrEqualTo(root.get("timeEnd"), longValue));
+        processedFields.add("timeEnd");
+      }
+
+      // Process any remaining fields not handled above
+      for (Map.Entry<String, Object> entry : conditions.entrySet()) {
+        String key = entry.getKey();
+        Object value = entry.getValue();
+
+        // Skip null values and already processed fields
+        if (value == null) {
+          continue;
         }
 
-        if (conditions.containsKey("maxDuration")) {
-          predicate = criteriaBuilder.and(predicate,
-              criteriaBuilder.lessThanOrEqualTo(root.get("duration"),
-                  Long.valueOf(conditions.get("maxDuration").toString())));
+        // Parse the condition key to extract field name and operator
+        String[] parsedKey = SCDQueryRequest.parseConditionKey(key);
+        String fieldName = parsedKey[0];
+        String operator = parsedKey[1];
+
+        // Convert snake_case field names to camelCase for JPA
+        String jpaFieldName = SCDQueryRequest.toCamelCase(fieldName);
+
+        // Skip already processed fields
+        if (processedFields.contains(jpaFieldName)) {
+          continue;
         }
 
-        if (conditions.containsKey("startTimeAfter")) {
-          predicate = criteriaBuilder.and(predicate,
-              criteriaBuilder.greaterThanOrEqualTo(root.get("timeStart"),
-                  Long.valueOf(conditions.get("startTimeAfter").toString())));
-        }
+        // Handle any remaining conditions
+        try {
+          Path<Object> path = root.get(jpaFieldName);
 
-        if (conditions.containsKey("startTimeBefore")) {
-          predicate = criteriaBuilder.and(predicate,
-              criteriaBuilder.lessThanOrEqualTo(root.get("timeStart"),
-                  Long.valueOf(conditions.get("startTimeBefore").toString())));
-        }
-
-        if (conditions.containsKey("endTimeAfter")) {
-          predicate = criteriaBuilder.and(predicate,
-              criteriaBuilder.greaterThanOrEqualTo(root.get("timeEnd"),
-                  Long.valueOf(conditions.get("endTimeAfter").toString())));
-        }
-
-        if (conditions.containsKey("endTimeBefore")) {
-          predicate = criteriaBuilder.and(predicate,
-              criteriaBuilder.lessThanOrEqualTo(root.get("timeEnd"),
-                  Long.valueOf(conditions.get("endTimeBefore").toString())));
+          switch (operator) {
+            case ">":
+              predicate = criteriaBuilder.and(predicate,
+                  criteriaBuilder.greaterThan(path.as(String.class), value.toString()));
+              break;
+            case ">=":
+              predicate = criteriaBuilder.and(predicate,
+                  criteriaBuilder.greaterThanOrEqualTo(path.as(String.class), value.toString()));
+              break;
+            case "<":
+              predicate = criteriaBuilder.and(predicate,
+                  criteriaBuilder.lessThan(path.as(String.class), value.toString()));
+              break;
+            case "<=":
+              predicate = criteriaBuilder.and(predicate,
+                  criteriaBuilder.lessThanOrEqualTo(path.as(String.class), value.toString()));
+              break;
+            case "!=":
+              predicate = criteriaBuilder.and(predicate,
+                  criteriaBuilder.notEqual(path, value));
+              break;
+            case "LIKE":
+              predicate = criteriaBuilder.and(predicate,
+                  criteriaBuilder.like(path.as(String.class), "%" + value.toString() + "%"));
+              break;
+            case "=":
+            default:
+              predicate = criteriaBuilder.and(predicate,
+                  criteriaBuilder.equal(path, value));
+              break;
+          }
+        } catch (Exception e) {
+          throw new SCDException("Error processing field " + fieldName + ": " + e.getMessage(),
+              "SPECIFICATION_ERROR");
         }
       }
 
