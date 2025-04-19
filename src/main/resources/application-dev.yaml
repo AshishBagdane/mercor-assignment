@@ -58,3 +58,8 @@ grpc:
   server:
     port: 50051
     reflection-service-enabled: true
+
+logging:
+  level:
+    root: INFO
+    com.mercor.assignment.scd: INFO

@@ -1,4 +1,4 @@
-package com.mercor.assignment.scd.service.grpc;
+package com.mercor.assignment.scd.domain;
 
 import com.mercor.assignment.scd.EntityRequest;
 import com.mercor.assignment.scd.EntityResponse;

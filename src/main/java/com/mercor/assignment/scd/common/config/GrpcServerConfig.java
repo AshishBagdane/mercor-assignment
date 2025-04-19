@@ -1,14 +1,14 @@
 package com.mercor.assignment.scd.common.config;
 
-import com.mercor.assignment.scd.service.grpc.TestServiceImpl;
+import com.mercor.assignment.scd.domain.TestServiceImpl;
+import com.mercor.assignment.scd.domain.core.service.grpc.SCDGrpcServiceImpl;
+import com.mercor.assignment.scd.domain.job.service.grpc.JobGrpcServiceImpl;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
-import io.grpc.protobuf.services.ProtoReflectionService;
 import io.grpc.protobuf.services.ProtoReflectionServiceV1;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.context.annotation.Bean;
@@ -25,6 +25,8 @@ public class GrpcServerConfig {
   private int grpcServerPort;
 
   private final TestServiceImpl testService;
+  private final SCDGrpcServiceImpl scdGrpcService;
+  private final JobGrpcServiceImpl jobGrpcService;
 
   /**
    * Create a lifecycle-managed gRPC server bean
@@ -34,7 +36,7 @@ public class GrpcServerConfig {
   @Bean
   public GrpcServerLifecycle grpcServerLifecycle() {
     return new GrpcServerLifecycle(grpcServerPort,
-        testService);
+        testService, scdGrpcService, jobGrpcService);
   }
 
   /**
@@ -44,14 +46,18 @@ public class GrpcServerConfig {
 
     private final int port;
     private final TestServiceImpl testService;
+    private final SCDGrpcServiceImpl scdGrpcService;
+    private final JobGrpcServiceImpl jobGrpcService;
 
     private Server server;
     private boolean running = false;
 
     public GrpcServerLifecycle(int port,
-        TestServiceImpl testService) {
+        TestServiceImpl testService, SCDGrpcServiceImpl scdGrpcService, JobGrpcServiceImpl jobGrpcService) {
       this.port = port;
       this.testService = testService;
+      this.scdGrpcService = scdGrpcService;
+      this.jobGrpcService = jobGrpcService;
     }
 
     @Override
@@ -59,6 +65,8 @@ public class GrpcServerConfig {
       try {
         server = ServerBuilder.forPort(port)
             .addService(testService)
+            .addService(scdGrpcService)
+            .addService(jobGrpcService)
             .addService(ProtoReflectionServiceV1.newInstance())
             .build()
             .start();
