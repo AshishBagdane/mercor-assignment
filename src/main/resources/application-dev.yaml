@@ -57,3 +57,4 @@ springdoc:
 grpc:
   server:
     port: 50051
+    reflection-service-enabled: true

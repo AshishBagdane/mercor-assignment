@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package com.mercor.assignment.scd.domain.timelog;
+
+import "com/mercor/assignment/scd/domain/timelog/request.proto";
+import "com/mercor/assignment/scd/domain/timelog/response.proto";
+
+option java_multiple_files = true;
+option java_package = "com.mercor.assignment.scd.domain.timelog";
+option java_outer_classname = "TimelogServiceProto";
+option go_package = "github.com/mercor/assignment/scd/domain/timelog";
+
+// Timelog-specific service
+service TimelogService {
+  rpc GetTimelogsForJob (GetTimelogsForJobRequest) returns (TimelogListResponse);
+  rpc GetTimelogsForContractor (GetTimelogsForContractorRequest) returns (TimelogListResponse);
+  rpc GetTimelogsWithDurationAbove (GetTimelogsWithDurationAboveRequest) returns (TimelogListResponse);
+  rpc AdjustTimelog (AdjustTimelogRequest) returns (TimelogResponse);
+}

@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package com.mercor.assignment.scd.domain.paymentlineitems;
+
+option java_multiple_files = true;
+option java_package = "com.mercor.assignment.scd.domain.paymentlineitems";
+option java_outer_classname = "PaymentLineItemsRequestProto";
+option go_package = "github.com/mercor/assignment/scd/domain/paymentlineitems";
+
+// PaymentLineItem-specific request messages
+message GetPaymentLineItemsForJobRequest {
+  string job_uid = 1;
+}
+
+message GetPaymentLineItemsForTimelogRequest {
+  string timelog_uid = 1;
+}
+
+message GetPaymentLineItemsForContractorRequest {
+  string contractor_id = 1;
+  int64 start_time = 2;
+  int64 end_time = 3;
+}
+
+message MarkAsPaidRequest {
+  string id = 1;
+}
+
+message GetTotalAmountForContractorRequest {
+  string contractor_id = 1;
+  int64 start_time = 2;
+  int64 end_time = 3;
+}

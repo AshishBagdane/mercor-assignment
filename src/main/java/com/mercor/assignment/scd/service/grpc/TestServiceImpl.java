@@ -1,10 +1,10 @@
 package com.mercor.assignment.scd.service.grpc;
 
-import com.mercor.assignment.scd.grpc.EntityRequest;
-import com.mercor.assignment.scd.grpc.EntityResponse;
-import com.mercor.assignment.scd.grpc.PingRequest;
-import com.mercor.assignment.scd.grpc.PingResponse;
-import com.mercor.assignment.scd.grpc.TestServiceGrpc;
+import com.mercor.assignment.scd.EntityRequest;
+import com.mercor.assignment.scd.EntityResponse;
+import com.mercor.assignment.scd.PingRequest;
+import com.mercor.assignment.scd.PingResponse;
+import com.mercor.assignment.scd.TestServiceGrpc;
 import io.grpc.stub.StreamObserver;
 import java.time.Instant;
 import org.springframework.grpc.server.service.GrpcService;

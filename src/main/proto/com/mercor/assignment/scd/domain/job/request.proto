@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package com.mercor.assignment.scd.domain.job;
+
+option java_multiple_files = true;
+option java_package = "com.mercor.assignment.scd.domain.job";
+option java_outer_classname = "JobRequestProto";
+option go_package = "github.com/mercor/assignment/scd/domain/job";
+
+// Job-specific request messages
+message GetActiveJobsForCompanyRequest {
+  string company_id = 1;
+}
+
+message GetActiveJobsForContractorRequest {
+  string contractor_id = 1;
+}
+
+message GetJobsWithRateAboveRequest {
+  double rate = 1;
+}
+
+message UpdateJobStatusRequest {
+  string id = 1;
+  string status = 2;
+}
+
+message UpdateJobRateRequest {
+  string id = 1;
+  double rate = 2;
+}

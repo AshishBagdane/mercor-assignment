@@ -17,7 +17,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class GrpcServerConfig {
 
-  @Value("${grpc.server.port:9090}")
+  @Value("${grpc.server.port:50051}")
   private int grpcServerPort;
 
   private final TestServiceImpl testService;

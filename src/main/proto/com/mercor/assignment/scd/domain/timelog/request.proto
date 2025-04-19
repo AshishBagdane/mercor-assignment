@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package com.mercor.assignment.scd.domain.timelog;
+
+option java_multiple_files = true;
+option java_package = "com.mercor.assignment.scd.domain.timelog";
+option java_outer_classname = "TimelogRequestProto";
+option go_package = "github.com/mercor/assignment/scd/domain/timelog";
+
+// Timelog-specific request messages
+message GetTimelogsForJobRequest {
+  string job_uid = 1;
+}
+
+message GetTimelogsForContractorRequest {
+  string contractor_id = 1;
+  int64 start_time = 2;
+  int64 end_time = 3;
+}
+
+message GetTimelogsWithDurationAboveRequest {
+  int64 duration = 1;
+}
+
+message AdjustTimelogRequest {
+  string id = 1;
+  int64 adjusted_duration = 2;
+}
