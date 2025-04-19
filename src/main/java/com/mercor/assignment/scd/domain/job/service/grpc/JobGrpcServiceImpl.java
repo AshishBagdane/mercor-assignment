@@ -1,11 +1,9 @@
 package com.mercor.assignment.scd.domain.job.service.grpc;
 
-import com.mercor.assignment.scd.domain.core.exception.EntityNotFoundException;
 import com.mercor.assignment.scd.domain.job.GetActiveJobsForCompanyRequest;
 import com.mercor.assignment.scd.domain.job.GetActiveJobsForContractorRequest;
 import com.mercor.assignment.scd.domain.job.GetJobsWithRateAboveRequest;
 import com.mercor.assignment.scd.domain.job.JobListResponse;
-import com.mercor.assignment.scd.domain.job.JobProto;
 import com.mercor.assignment.scd.domain.job.JobResponse;
 import com.mercor.assignment.scd.domain.job.JobServiceGrpc;
 import com.mercor.assignment.scd.domain.job.UpdateJobRateRequest;
@@ -17,7 +15,6 @@ import io.grpc.stub.StreamObserver;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.grpc.server.service.GrpcService;

@@ -12,7 +12,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * Abstract base implementation of SCDService that provides common functionality
@@ -55,7 +54,7 @@ public abstract class AbstractSCDService<T extends SCDEntity, R extends JpaRepos
         // Sort by version in descending order (latest first)
         return versions.stream()
                 .sorted((e1, e2) -> Integer.compare(e2.getVersion(), e1.getVersion()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override

@@ -168,13 +168,4 @@ public abstract class AbstractSCDRepositoryImpl<T extends SCDEntity> implements 
      * @param fieldsToUpdate map of field names to new values
      */
     protected abstract void updateEntityFields(T entity, Map<String, Object> fieldsToUpdate);
-
-    /**
-     * Copy business data from source entity to target entity
-     * This should only copy the business fields, not the SCD metadata fields
-     *
-     * @param source the source entity
-     * @param target the target entity
-     */
-    protected abstract void copyEntityData(T source, T target);
 }

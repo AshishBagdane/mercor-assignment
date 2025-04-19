@@ -60,17 +60,4 @@ public class JobRepositoryImpl extends AbstractSCDRepositoryImpl<Job> {
             }
         });
     }
-
-    @Override
-    protected void copyEntityData(Job source, Job target) {
-        // Copy all business fields from source to target
-        target.setStatus(source.getStatus());
-        target.setRate(source.getRate());
-        target.setTitle(source.getTitle());
-        target.setCompanyId(source.getCompanyId());
-        target.setContractorId(source.getContractorId());
-
-        // Add any other business fields that need to be copied
-        // DO NOT copy id, version, uid, createdAt, updatedAt fields here
-    }
 }

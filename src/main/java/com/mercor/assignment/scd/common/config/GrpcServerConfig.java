@@ -3,6 +3,7 @@ package com.mercor.assignment.scd.common.config;
 import com.mercor.assignment.scd.domain.TestServiceImpl;
 import com.mercor.assignment.scd.domain.core.service.grpc.SCDGrpcServiceImpl;
 import com.mercor.assignment.scd.domain.job.service.grpc.JobGrpcServiceImpl;
+import com.mercor.assignment.scd.domain.timelog.service.grpc.TimelogGrpcServiceImpl;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.protobuf.services.ProtoReflectionServiceV1;
@@ -27,6 +28,7 @@ public class GrpcServerConfig {
   private final TestServiceImpl testService;
   private final SCDGrpcServiceImpl scdGrpcService;
   private final JobGrpcServiceImpl jobGrpcService;
+  private final TimelogGrpcServiceImpl timelogGrpcService;
 
   /**
    * Create a lifecycle-managed gRPC server bean
@@ -36,7 +38,7 @@ public class GrpcServerConfig {
   @Bean
   public GrpcServerLifecycle grpcServerLifecycle() {
     return new GrpcServerLifecycle(grpcServerPort,
-        testService, scdGrpcService, jobGrpcService);
+        testService, scdGrpcService, jobGrpcService, timelogGrpcService);
   }
 
   /**
@@ -48,16 +50,18 @@ public class GrpcServerConfig {
     private final TestServiceImpl testService;
     private final SCDGrpcServiceImpl scdGrpcService;
     private final JobGrpcServiceImpl jobGrpcService;
+    private final TimelogGrpcServiceImpl timelogGrpcService;
 
     private Server server;
     private boolean running = false;
 
     public GrpcServerLifecycle(int port,
-        TestServiceImpl testService, SCDGrpcServiceImpl scdGrpcService, JobGrpcServiceImpl jobGrpcService) {
+        TestServiceImpl testService, SCDGrpcServiceImpl scdGrpcService, JobGrpcServiceImpl jobGrpcService, TimelogGrpcServiceImpl timelogGrpcService) {
       this.port = port;
       this.testService = testService;
       this.scdGrpcService = scdGrpcService;
       this.jobGrpcService = jobGrpcService;
+      this.timelogGrpcService = timelogGrpcService;
     }
 
     @Override
@@ -67,6 +71,7 @@ public class GrpcServerConfig {
             .addService(testService)
             .addService(scdGrpcService)
             .addService(jobGrpcService)
+            .addService(timelogGrpcService)
             .addService(ProtoReflectionServiceV1.newInstance())
             .build()
             .start();
