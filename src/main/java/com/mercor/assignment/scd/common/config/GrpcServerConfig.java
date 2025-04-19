@@ -3,8 +3,11 @@ package com.mercor.assignment.scd.common.config;
 import com.mercor.assignment.scd.service.grpc.TestServiceImpl;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
+import io.grpc.protobuf.services.ProtoReflectionService;
+import io.grpc.protobuf.services.ProtoReflectionServiceV1;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.SmartLifecycle;
@@ -15,18 +18,13 @@ import org.springframework.context.annotation.Configuration;
  * Configuration class for gRPC server with proper lifecycle management
  */
 @Configuration
+@RequiredArgsConstructor
 public class GrpcServerConfig {
 
   @Value("${grpc.server.port:50051}")
   private int grpcServerPort;
 
   private final TestServiceImpl testService;
-
-  @Autowired
-  public GrpcServerConfig(
-      TestServiceImpl testService) {
-    this.testService = testService;
-  }
 
   /**
    * Create a lifecycle-managed gRPC server bean
@@ -61,6 +59,7 @@ public class GrpcServerConfig {
       try {
         server = ServerBuilder.forPort(port)
             .addService(testService)
+            .addService(ProtoReflectionServiceV1.newInstance())
             .build()
             .start();
 
