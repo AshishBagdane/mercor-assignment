@@ -1,7 +1,7 @@
 package com.mercor.assignment.scd.domain.job.service.regular;
 
+import com.mercor.assignment.scd.common.errorhandling.exceptions.EntityNotFoundException;
 import com.mercor.assignment.scd.domain.core.enums.EntityType;
-import com.mercor.assignment.scd.domain.core.exception.EntityNotFoundException;
 import com.mercor.assignment.scd.domain.core.util.UidGenerator;
 import com.mercor.assignment.scd.domain.job.model.Job;
 import com.mercor.assignment.scd.domain.job.repository.JobRepository;
@@ -61,14 +61,14 @@ public class JobServiceImpl implements JobService {
     public Job createEntity(Job entity) {
         // Generate a new entity ID if not set
         if (entity.getId() == null || entity.getId().isEmpty()) {
-            entity.setId(uidGenerator.generateEntityId(EntityType.JOBS.name().toLowerCase()));
+            entity.setId(uidGenerator.generateEntityId(EntityType.JOBS.getPrefix()));
         }
 
         // Set initial version
         entity.setVersion(1);
 
         // Generate UID for this version
-        entity.setUid(uidGenerator.generateUid(EntityType.JOBS.name().toLowerCase()));
+        entity.setUid(uidGenerator.generateUid(EntityType.JOBS.getPrefix()));
 
         // Set timestamps
         Date now = new Date();

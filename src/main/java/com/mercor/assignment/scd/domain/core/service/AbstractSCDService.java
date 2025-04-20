@@ -1,8 +1,10 @@
 package com.mercor.assignment.scd.domain.core.service;
 
-import com.mercor.assignment.scd.domain.core.exception.EntityNotFoundException;
+import com.mercor.assignment.scd.common.errorhandling.exceptions.EntityNotFoundException;
 import com.mercor.assignment.scd.domain.core.model.SCDEntity;
 import com.mercor.assignment.scd.domain.core.util.UidGenerator;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Example;
 import org.springframework.data.domain.ExampleMatcher;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -20,24 +22,12 @@ import java.util.Optional;
  * @param <T> the specific entity type extending SCDEntity
  * @param <R> the repository type extending JpaRepository
  */
+@RequiredArgsConstructor(access = AccessLevel.PROTECTED)
 public abstract class AbstractSCDService<T extends SCDEntity, R extends JpaRepository<T, String>> implements SCDService<T> {
 
     protected final R repository;
     protected final UidGenerator uidGenerator;
     protected final String entityType;
-
-    /**
-     * Constructor with required dependencies
-     *
-     * @param repository the JPA repository for entity type T
-     * @param uidGenerator the utility to generate unique IDs
-     * @param entityType the entity type string identifier
-     */
-    protected AbstractSCDService(R repository, UidGenerator uidGenerator, String entityType) {
-        this.repository = repository;
-        this.uidGenerator = uidGenerator;
-        this.entityType = entityType;
-    }
 
     @Override
     public Optional<T> findLatestVersionById(String id) {

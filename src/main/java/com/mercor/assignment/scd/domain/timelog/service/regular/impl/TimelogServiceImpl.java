@@ -1,19 +1,16 @@
 package com.mercor.assignment.scd.domain.timelog.service.regular.impl;
 
+import com.mercor.assignment.scd.common.errorhandling.exceptions.EntityNotFoundException;
+import com.mercor.assignment.scd.common.errorhandling.exceptions.ValidationException;
 import com.mercor.assignment.scd.domain.core.enums.EntityType;
-import com.mercor.assignment.scd.domain.core.exception.EntityNotFoundException;
-import com.mercor.assignment.scd.domain.core.service.AbstractSCDService;
 import com.mercor.assignment.scd.domain.core.util.UidGenerator;
 import com.mercor.assignment.scd.domain.job.model.Job;
-import com.mercor.assignment.scd.domain.job.repository.JobRepository;
 import com.mercor.assignment.scd.domain.job.service.JobService;
 import com.mercor.assignment.scd.domain.timelog.model.Timelog;
 import com.mercor.assignment.scd.domain.timelog.repository.TimelogRepository;
 import com.mercor.assignment.scd.domain.timelog.service.regular.TimelogService;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,7 +18,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * Implementation of the Timelog service
@@ -72,8 +68,7 @@ public class TimelogServiceImpl implements TimelogService {
 
         // Validate that we're not trying to adjust an already adjusted timelog
         if ("adjusted".equals(latestVersion.getType())) {
-            throw new RuntimeException("Cannot adjust an already adjusted timelog");
-//            throw new Exception("Cannot adjust an already adjusted timelog", "ALREADY_ADJUSTED");
+            throw new ValidationException("Cannot adjust an already adjusted timelog", "ALREADY_ADJUSTED");
         }
 
         // Calculate the new timeEnd based on the timeStart and adjusted duration
@@ -104,6 +99,7 @@ public class TimelogServiceImpl implements TimelogService {
     }
 
     @Override
+    @Transactional
     public Timelog createNewVersion(String id, Map<String, Object> fieldsToUpdate) {
         Optional<Timelog> latestVersionOpt = findLatestVersionById(id);
 
@@ -116,17 +112,18 @@ public class TimelogServiceImpl implements TimelogService {
     }
 
     @Override
+    @Transactional
     public Timelog createEntity(Timelog entity) {
         // Generate a new entity ID if not set
         if (entity.getId() == null || entity.getId().isEmpty()) {
-            entity.setId(uidGenerator.generateEntityId(EntityType.JOBS.name().toLowerCase()));
+            entity.setId(uidGenerator.generateEntityId(EntityType.JOBS.getPrefix()));
         }
 
         // Set initial version
         entity.setVersion(1);
 
         // Generate UID for this version
-        entity.setUid(uidGenerator.generateUid(EntityType.JOBS.name().toLowerCase()));
+        entity.setUid(uidGenerator.generateUid(EntityType.JOBS.getPrefix()));
 
         // Set timestamps
         Date now = new Date();

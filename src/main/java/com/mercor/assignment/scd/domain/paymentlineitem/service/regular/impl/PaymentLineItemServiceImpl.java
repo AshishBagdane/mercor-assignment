@@ -1,9 +1,9 @@
 package com.mercor.assignment.scd.domain.paymentlineitem.service.regular.impl;
 
+import com.mercor.assignment.scd.common.errorhandling.exceptions.EntityNotFoundException;
+import com.mercor.assignment.scd.common.errorhandling.exceptions.ValidationException;
 import com.mercor.assignment.scd.domain.core.enums.EntityType;
-import com.mercor.assignment.scd.domain.core.exception.EntityNotFoundException;
 import com.mercor.assignment.scd.domain.core.util.UidGenerator;
-import com.mercor.assignment.scd.domain.job.service.JobService;
 import com.mercor.assignment.scd.domain.paymentlineitem.model.PaymentLineItem;
 import com.mercor.assignment.scd.domain.paymentlineitem.repository.PaymentLineItemRepository;
 import com.mercor.assignment.scd.domain.paymentlineitem.service.regular.PaymentLineItemService;
@@ -47,8 +47,7 @@ public class PaymentLineItemServiceImpl implements PaymentLineItemService {
 
     // Check if the payment line item is already paid
     if ("paid".equals(paymentLineItem.getStatus())) {
-      throw new RuntimeException("Payment line item is already marked as paid");
-//      throw new RuntimeException("Payment line item is already marked as paid", "ALREADY_PAID");
+      throw new ValidationException("Payment line item is already marked as paid", "ALREADY_PAID");
     }
 
     // Create a map with the updated status
@@ -96,14 +95,14 @@ public class PaymentLineItemServiceImpl implements PaymentLineItemService {
   public PaymentLineItem createEntity(PaymentLineItem entity) {
     // Generate a new entity ID if not set
     if (entity.getId() == null || entity.getId().isEmpty()) {
-      entity.setId(uidGenerator.generateEntityId(EntityType.PAYMENT_LINE_ITEMS.name().toLowerCase()));
+      entity.setId(uidGenerator.generateEntityId(EntityType.PAYMENT_LINE_ITEMS.getPrefix()));
     }
 
     // Set initial version
     entity.setVersion(1);
 
     // Generate UID for this version
-    entity.setUid(uidGenerator.generateUid(EntityType.PAYMENT_LINE_ITEMS.name().toLowerCase()));
+    entity.setUid(uidGenerator.generateUid(EntityType.PAYMENT_LINE_ITEMS.getPrefix()));
 
     // Set timestamps
     Date now = new Date();

@@ -44,7 +44,7 @@ public abstract class AbstractSCDRepositoryImpl<T extends SCDEntity> implements 
     protected AbstractSCDRepositoryImpl(UidGenerator uidGenerator, Class<T> entityClass, EntityType entityType) {
         this.uidGenerator = uidGenerator;
         this.entityClass = entityClass;
-        this.entityTypeName = entityType.name().toLowerCase();
+        this.entityTypeName = entityType.getPrefix();
     }
 
     @Override
