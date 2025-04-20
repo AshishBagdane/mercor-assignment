@@ -9,6 +9,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.Named;
+import org.mapstruct.ReportingPolicy;
 import org.mapstruct.factory.Mappers;
 
 import java.util.Date;
@@ -17,7 +18,7 @@ import java.util.List;
 /**
  * MapStruct mapper for converting between Timelog entity and proto objects
  */
-@Mapper
+@Mapper(unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface TimelogMapper {
 
     TimelogMapper INSTANCE = Mappers.getMapper(TimelogMapper.class);

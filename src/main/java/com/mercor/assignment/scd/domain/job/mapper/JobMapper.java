@@ -18,11 +18,12 @@ import org.mapstruct.Named;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import org.mapstruct.ReportingPolicy;
 
 /**
  * MapStruct mapper for converting between Job proto messages and Job entity
  */
-@Mapper(componentModel = "spring", injectionStrategy = InjectionStrategy.CONSTRUCTOR)
+@Mapper(componentModel = "spring", injectionStrategy = InjectionStrategy.CONSTRUCTOR, unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface JobMapper {
 
     /**
