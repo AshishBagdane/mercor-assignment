@@ -1,14 +1,17 @@
 package com.mercor.assignment.scd.common.config;
 
-import com.mercor.assignment.scd.service.grpc.TestServiceImpl;
+import com.mercor.assignment.scd.domain.TestServiceImpl;
+import com.mercor.assignment.scd.domain.core.service.grpc.SCDGrpcServiceImpl;
+import com.mercor.assignment.scd.domain.job.service.grpc.JobGrpcServiceImpl;
+import com.mercor.assignment.scd.domain.paymentlineitem.service.grpc.PaymentLineItemGrpcServiceImpl;
+import com.mercor.assignment.scd.domain.timelog.service.grpc.TimelogGrpcServiceImpl;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
-import io.grpc.protobuf.services.ProtoReflectionService;
 import io.grpc.protobuf.services.ProtoReflectionServiceV1;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.context.annotation.Bean;
@@ -17,6 +20,7 @@ import org.springframework.context.annotation.Configuration;
 /**
  * Configuration class for gRPC server with proper lifecycle management
  */
+@Slf4j
 @Configuration
 @RequiredArgsConstructor
 public class GrpcServerConfig {
@@ -25,6 +29,10 @@ public class GrpcServerConfig {
   private int grpcServerPort;
 
   private final TestServiceImpl testService;
+  private final SCDGrpcServiceImpl scdGrpcService;
+  private final JobGrpcServiceImpl jobGrpcService;
+  private final TimelogGrpcServiceImpl timelogGrpcService;
+  private final PaymentLineItemGrpcServiceImpl paymentLineItemGrpcService;
 
   /**
    * Create a lifecycle-managed gRPC server bean
@@ -34,7 +42,7 @@ public class GrpcServerConfig {
   @Bean
   public GrpcServerLifecycle grpcServerLifecycle() {
     return new GrpcServerLifecycle(grpcServerPort,
-        testService);
+        testService, scdGrpcService, jobGrpcService, timelogGrpcService, paymentLineItemGrpcService);
   }
 
   /**
@@ -44,14 +52,23 @@ public class GrpcServerConfig {
 
     private final int port;
     private final TestServiceImpl testService;
+    private final SCDGrpcServiceImpl scdGrpcService;
+    private final JobGrpcServiceImpl jobGrpcService;
+    private final TimelogGrpcServiceImpl timelogGrpcService;
+    private final PaymentLineItemGrpcServiceImpl paymentLineItemGrpcService;
 
     private Server server;
     private boolean running = false;
 
     public GrpcServerLifecycle(int port,
-        TestServiceImpl testService) {
+        TestServiceImpl testService, SCDGrpcServiceImpl scdGrpcService, JobGrpcServiceImpl jobGrpcService, TimelogGrpcServiceImpl timelogGrpcService
+    , PaymentLineItemGrpcServiceImpl paymentLineItemGrpcService) {
       this.port = port;
       this.testService = testService;
+      this.scdGrpcService = scdGrpcService;
+      this.jobGrpcService = jobGrpcService;
+      this.timelogGrpcService = timelogGrpcService;
+      this.paymentLineItemGrpcService = paymentLineItemGrpcService;
     }
 
     @Override
@@ -59,13 +76,17 @@ public class GrpcServerConfig {
       try {
         server = ServerBuilder.forPort(port)
             .addService(testService)
+            .addService(scdGrpcService)
+            .addService(jobGrpcService)
+            .addService(timelogGrpcService)
+            .addService(paymentLineItemGrpcService)
             .addService(ProtoReflectionServiceV1.newInstance())
             .build()
             .start();
 
         running = true;
 
-        System.out.println("gRPC Server started, listening on port " + port);
+        log.info("gRPC Server started, listening on port {}", port);
       } catch (IOException e) {
         throw new RuntimeException("Failed to start gRPC server", e);
       }
@@ -76,10 +97,10 @@ public class GrpcServerConfig {
       if (server != null) {
         try {
           server.shutdown().awaitTermination(30, TimeUnit.SECONDS);
-          System.out.println("gRPC server shut down successfully");
+          log.info("gRPC server shut down successfully");
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
-          System.err.println("gRPC server shutdown interrupted");
+          log.error("gRPC server shutdown interrupted");
         } finally {
           server = null;
           running = false;

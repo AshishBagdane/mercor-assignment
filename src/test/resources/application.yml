@@ -16,3 +16,9 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.H2Dialect
+
+# gRPC configuration
+grpc:
+  server:
+    port: 0
+    reflection-service-enabled: true

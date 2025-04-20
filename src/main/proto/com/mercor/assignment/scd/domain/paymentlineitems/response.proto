@@ -8,7 +8,7 @@ option java_outer_classname = "PaymentLineItemsResponseProto";
 option go_package = "github.com/mercor/assignment/scd/domain/paymentlineitems";
 
 // PaymentLineItem message definition
-message PaymentLineItem {
+message PaymentLineItemProto {
   string id = 1;
   int32 version = 2;
   string uid = 3;
@@ -22,11 +22,11 @@ message PaymentLineItem {
 
 // PaymentLineItem-specific response messages
 message PaymentLineItemResponse {
-  PaymentLineItem payment_line_item = 1;
+  PaymentLineItemProto payment_line_item = 1;
 }
 
 message PaymentLineItemListResponse {
-  repeated PaymentLineItem payment_line_items = 1;
+  repeated PaymentLineItemProto payment_line_items = 1;
 }
 
 message TotalAmountResponse {
