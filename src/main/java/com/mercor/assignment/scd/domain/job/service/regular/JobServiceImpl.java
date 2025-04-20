@@ -1,9 +1,11 @@
 package com.mercor.assignment.scd.domain.job.service.regular;
 
 import com.mercor.assignment.scd.common.errorhandling.exceptions.EntityNotFoundException;
+import com.mercor.assignment.scd.common.errorhandling.exceptions.ValidationException;
 import com.mercor.assignment.scd.domain.core.constants.ServiceName;
 import com.mercor.assignment.scd.domain.core.enums.EntityType;
 import com.mercor.assignment.scd.domain.core.util.UidGenerator;
+import com.mercor.assignment.scd.domain.core.validation.SCDValidators;
 import com.mercor.assignment.scd.domain.job.model.Job;
 import com.mercor.assignment.scd.domain.job.repository.JobRepository;
 import com.mercor.assignment.scd.domain.job.service.JobService;
@@ -31,22 +33,35 @@ public class JobServiceImpl implements JobService {
 
     @Override
     public Optional<Job> findLatestVersionById(String id) {
+        if (!SCDValidators.SCDCommonValidators.validId.isValid(id)) {
+            throw new ValidationException("Invalid job ID format");
+        }
         return jobRepository.findLatestVersionById(id);
     }
 
     @Override
     public List<Job> findAllVersionsById(String id) {
+        if (!SCDValidators.SCDCommonValidators.validId.isValid(id)) {
+            throw new ValidationException("Invalid job ID format");
+        }
         return jobRepository.findAllVersionsById(id);
     }
 
     @Override
     public Optional<Job> findByUid(String uid) {
+        if (!SCDValidators.SCDCommonValidators.validUid.isValid(uid)) {
+            throw new ValidationException("Invalid job UID format");
+        }
         return jobRepository.findByUid(uid);
     }
 
     @Override
     @Transactional
     public Job createNewVersion(String id, Map<String, Object> fieldsToUpdate) {
+        if (!SCDValidators.SCDCommonValidators.validId.isValid(id)) {
+            throw new ValidationException("Invalid job ID format");
+        }
+
         Optional<Job> latestVersionOpt = findLatestVersionById(id);
 
         if (latestVersionOpt.isEmpty()) {
@@ -87,6 +102,10 @@ public class JobServiceImpl implements JobService {
 
     @Override
     public List<Job> findActiveJobsForCompany(String companyId) {
+        if (!SCDValidators.JobValidators.validCompanyId.isValid(companyId)) {
+            throw new ValidationException("Invalid company ID format");
+        }
+
         Map<String, Object> criteria = new HashMap<>();
         criteria.put("companyId", companyId);
         criteria.put("status", "active");
@@ -96,6 +115,10 @@ public class JobServiceImpl implements JobService {
 
     @Override
     public List<Job> findActiveJobsForContractor(String contractorId) {
+        if (!SCDValidators.JobValidators.validContractorId.isValid(contractorId)) {
+            throw new IllegalArgumentException("Invalid contractor ID format");
+        }
+
         Map<String, Object> criteria = new HashMap<>();
         criteria.put("contractorId", contractorId);
         criteria.put("status", "active");
@@ -105,9 +128,9 @@ public class JobServiceImpl implements JobService {
 
     @Override
     public List<Job> findJobsWithRateAbove(Double minRate) {
-        // For queries with operators other than equals,
-        // we need more sophisticated criteria handling
-        // This would typically use a Specification or custom query
+        if (minRate == null || minRate < 0) {
+            throw new IllegalArgumentException("Minimum rate must be a non-negative value");
+        }
 
         Map<String, Object> emptyCriteria = new HashMap<>();
         List<Job> allLatestJobs = jobRepository.findLatestVersionsByCriteria(emptyCriteria);
@@ -118,7 +141,5 @@ public class JobServiceImpl implements JobService {
         return allLatestJobs.stream()
             .filter(job -> job.getRate().compareTo(minRateDecimal) > 0)
             .toList();
-
-        // A better implementation would use a custom query method in the repository
     }
 }
