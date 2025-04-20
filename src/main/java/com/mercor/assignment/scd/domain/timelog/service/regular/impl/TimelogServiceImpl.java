@@ -5,6 +5,7 @@ import com.mercor.assignment.scd.common.errorhandling.exceptions.ValidationExcep
 import com.mercor.assignment.scd.domain.core.constants.ServiceName;
 import com.mercor.assignment.scd.domain.core.enums.EntityType;
 import com.mercor.assignment.scd.domain.core.util.UidGenerator;
+import com.mercor.assignment.scd.domain.core.validation.SCDValidators.SCDCommonValidators;
 import com.mercor.assignment.scd.domain.job.model.Job;
 import com.mercor.assignment.scd.domain.job.service.JobService;
 import com.mercor.assignment.scd.domain.timelog.model.Timelog;
@@ -34,6 +35,9 @@ public class TimelogServiceImpl implements TimelogService {
 
     @Override
     public List<Timelog> findTimelogsForJob(String jobUid) {
+        if (!SCDCommonValidators.validUid.isValid(jobUid)) {
+            throw new ValidationException("Invalid Job UID format");
+        }
         return timelogRepository.findByJobUid(jobUid);
     }
 
@@ -59,6 +63,9 @@ public class TimelogServiceImpl implements TimelogService {
     @Override
     @Transactional
     public Timelog adjustTimelog(String timelogId, Long adjustedDuration) {
+        if (!SCDCommonValidators.validId.isValid(timelogId)) {
+            throw new ValidationException("Invalid Timelog ID format");
+        }
         Optional<Timelog> latestVersionOpt = findLatestVersionById(timelogId);
 
         if (latestVersionOpt.isEmpty()) {
@@ -86,22 +93,38 @@ public class TimelogServiceImpl implements TimelogService {
 
     @Override
     public Optional<Timelog> findLatestVersionById(String id) {
+        if (!SCDCommonValidators.validId.isValid(id)) {
+            throw new ValidationException("Invalid Timelog ID format");
+        }
+
         return timelogRepository.findLatestVersionById(id);
     }
 
     @Override
     public List<Timelog> findAllVersionsById(String id) {
+        if (!SCDCommonValidators.validId.isValid(id)) {
+            throw new ValidationException("Invalid Timelog ID format");
+        }
+
         return timelogRepository.findAllVersionsById(id);
     }
 
     @Override
     public Optional<Timelog> findByUid(String uid) {
+        if (!SCDCommonValidators.validUid.isValid(uid)) {
+            throw new ValidationException("Invalid Timelog UID format");
+        }
+
         return timelogRepository.findByUid(uid);
     }
 
     @Override
     @Transactional
     public Timelog createNewVersion(String id, Map<String, Object> fieldsToUpdate) {
+        if (!SCDCommonValidators.validId.isValid(id)) {
+            throw new ValidationException("Invalid Timelog ID format");
+        }
+
         Optional<Timelog> latestVersionOpt = findLatestVersionById(id);
 
         if (latestVersionOpt.isEmpty()) {
