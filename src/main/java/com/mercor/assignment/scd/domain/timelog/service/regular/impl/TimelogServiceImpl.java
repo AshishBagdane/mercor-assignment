@@ -2,6 +2,7 @@ package com.mercor.assignment.scd.domain.timelog.service.regular.impl;
 
 import com.mercor.assignment.scd.common.errorhandling.exceptions.EntityNotFoundException;
 import com.mercor.assignment.scd.common.errorhandling.exceptions.ValidationException;
+import com.mercor.assignment.scd.domain.core.constants.ServiceName;
 import com.mercor.assignment.scd.domain.core.enums.EntityType;
 import com.mercor.assignment.scd.domain.core.util.UidGenerator;
 import com.mercor.assignment.scd.domain.job.model.Job;
@@ -22,7 +23,7 @@ import java.util.Map;
 /**
  * Implementation of the Timelog service
  */
-@Service
+@Service(ServiceName.TIMELOG_SERVICE)
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class TimelogServiceImpl implements TimelogService {

@@ -44,7 +44,7 @@ public interface SCDService<T extends SCDEntity> {
      * @param id the entity ID
      * @param fieldsToUpdate map of field names to new values
      * @return the newly created entity version
-     * @throws com.mercor.assignment.scd.domain.core.exception.EntityNotFoundException if the specified entity does not exist
+     * @throws com.mercor.assignment.scd.common.errorhandling.exceptions.EntityNotFoundException if the specified entity does not exist
      */
     T createNewVersion(String id, Map<String, Object> fieldsToUpdate);
 

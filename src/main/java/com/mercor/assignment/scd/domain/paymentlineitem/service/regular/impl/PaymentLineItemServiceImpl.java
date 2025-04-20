@@ -2,6 +2,7 @@ package com.mercor.assignment.scd.domain.paymentlineitem.service.regular.impl;
 
 import com.mercor.assignment.scd.common.errorhandling.exceptions.EntityNotFoundException;
 import com.mercor.assignment.scd.common.errorhandling.exceptions.ValidationException;
+import com.mercor.assignment.scd.domain.core.constants.ServiceName;
 import com.mercor.assignment.scd.domain.core.enums.EntityType;
 import com.mercor.assignment.scd.domain.core.util.UidGenerator;
 import com.mercor.assignment.scd.domain.paymentlineitem.model.PaymentLineItem;
@@ -18,7 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 @Slf4j
-@Service
+@Service(ServiceName.PAYMENT_LINE_ITEMS_SERVICE)
 @RequiredArgsConstructor
 public class PaymentLineItemServiceImpl implements PaymentLineItemService {
 

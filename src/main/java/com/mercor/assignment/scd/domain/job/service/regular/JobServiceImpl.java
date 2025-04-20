@@ -1,6 +1,7 @@
 package com.mercor.assignment.scd.domain.job.service.regular;
 
 import com.mercor.assignment.scd.common.errorhandling.exceptions.EntityNotFoundException;
+import com.mercor.assignment.scd.domain.core.constants.ServiceName;
 import com.mercor.assignment.scd.domain.core.enums.EntityType;
 import com.mercor.assignment.scd.domain.core.util.UidGenerator;
 import com.mercor.assignment.scd.domain.job.model.Job;
@@ -21,7 +22,7 @@ import java.util.Optional;
  * Implementation of the JobService interface
  * Uses the JobRepository for SCD operations
  */
-@Service
+@Service(ServiceName.JOB_SERVICE)
 @RequiredArgsConstructor
 public class JobServiceImpl implements JobService {
 
