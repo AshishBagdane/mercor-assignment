@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package com.mercor.assignment.scd.domain.paymentlineitems;
+
+import "paymentlineitems/request.proto";
+import "paymentlineitems/response.proto";
+
+option java_multiple_files = true;
+option java_package = "com.mercor.assignment.scd.domain.paymentlineitems";
+option java_outer_classname = "PaymentLineItemsServiceProto";
+option go_package = "github.com/mercor-ai/scd-go-client/api/paymentlineitems";
+
+// PaymentLineItem-specific service
+service PaymentLineItemService {
+  rpc GetPaymentLineItemsForJob (GetPaymentLineItemsForJobRequest) returns (PaymentLineItemListResponse);
+  rpc GetPaymentLineItemsForTimelog (GetPaymentLineItemsForTimelogRequest) returns (PaymentLineItemListResponse);
+  rpc GetPaymentLineItemsForContractor (GetPaymentLineItemsForContractorRequest) returns (PaymentLineItemListResponse);
+  rpc MarkAsPaid (MarkAsPaidRequest) returns (PaymentLineItemResponse);
+  rpc GetTotalAmountForContractor (GetTotalAmountForContractorRequest) returns (TotalAmountResponse);
+}

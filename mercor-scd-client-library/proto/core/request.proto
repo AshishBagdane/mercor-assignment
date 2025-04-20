@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package com.mercor.assignment.scd.domain.core;
+
+import "common/types.proto";
+
+option java_multiple_files = true;
+option java_package = "com.mercor.assignment.scd.domain.core";
+option java_outer_classname = "CoreRequestProto";
+option go_package = "github.com/mercor-ai/scd-go-client/api/core";
+
+// Common request messages
+message GetLatestVersionRequest {
+  string entity_type = 1;
+  string id = 2;
+}
+
+message GetVersionHistoryRequest {
+  string entity_type = 1;
+  string id = 2;
+}
+
+message QueryRequest {
+  string entity_type = 1;
+  map<string, string> conditions = 2;
+  bool latest_version_only = 3;
+  int32 limit = 4;
+  int32 offset = 5;
+  string sort_by = 6;
+  string sort_direction = 7;
+}
+
+message UpdateRequest {
+  string entity_type = 1;
+  string id = 2;
+  map<string, string> fields = 3;
+  com.mercor.assignment.scd.domain.common.Entity entity = 4;
+}
+
+message BatchGetRequest {
+  string entity_type = 1;
+  repeated string ids = 2;
+}
+
+message BatchUpdateRequest {
+  string entity_type = 1;
+  repeated com.mercor.assignment.scd.domain.common.Entity entities = 2;
+  map<string, string> common_fields = 3;
+}

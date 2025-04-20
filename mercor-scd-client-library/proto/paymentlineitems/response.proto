@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package com.mercor.assignment.scd.domain.paymentlineitems;
+
+option java_multiple_files = true;
+option java_package = "com.mercor.assignment.scd.domain.paymentlineitems";
+option java_outer_classname = "PaymentLineItemsResponseProto";
+option go_package = "github.com/mercor-ai/scd-go-client/api/paymentlineitems";
+
+// PaymentLineItem message definition
+message PaymentLineItemProto {
+  string id = 1;
+  int32 version = 2;
+  string uid = 3;
+  int64 created_at = 4;
+  int64 updated_at = 5;
+  string job_uid = 6;
+  string timelog_uid = 7;
+  double amount = 8;
+  string status = 9;
+}
+
+// PaymentLineItem-specific response messages
+message PaymentLineItemResponse {
+  PaymentLineItemProto payment_line_item = 1;
+}
+
+message PaymentLineItemListResponse {
+  repeated PaymentLineItemProto payment_line_items = 1;
+}
+
+message TotalAmountResponse {
+  double total_amount = 1;
+}
