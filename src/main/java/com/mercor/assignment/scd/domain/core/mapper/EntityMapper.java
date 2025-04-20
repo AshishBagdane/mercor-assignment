@@ -1,5 +1,6 @@
 package com.mercor.assignment.scd.domain.core.mapper;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.ByteString;
 import com.mercor.assignment.scd.domain.common.Entity;
 import com.mercor.assignment.scd.domain.core.EntityListResponse;
@@ -14,9 +15,7 @@ import org.mapstruct.Named;
 import org.mapstruct.ReportingPolicy;
 import org.mapstruct.factory.Mappers;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -39,7 +38,7 @@ public interface EntityMapper {
     @Mapping(target = "createdAt", source = "createdAt", qualifiedByName = "dateToMillis")
     @Mapping(target = "updatedAt", source = "updatedAt", qualifiedByName = "dateToMillis")
     @Mapping(target = "type", constant = "generic")
-//    @Mapping(target = "data", expression = "java(serializeEntityData(entity))")
+    @Mapping(target = "data", expression = "java(serializeEntityData(entity))")
     Entity mapToEntityProto(SCDEntity entity);
 
     /**
@@ -63,7 +62,7 @@ public interface EntityMapper {
     @Mapping(target = "createdAt", source = "createdAt", qualifiedByName = "dateToMillis")
     @Mapping(target = "updatedAt", source = "updatedAt", qualifiedByName = "dateToMillis")
     @Mapping(target = "type", constant = "timelog")
-//    @Mapping(target = "data", expression = "java(serializeTimelogData(timelog))")
+    @Mapping(target = "data", expression = "java(serializeTimelogData(timelog))")
     Entity mapTimelogToEntityProto(Timelog timelog);
 
     /**
@@ -75,7 +74,7 @@ public interface EntityMapper {
     @Mapping(target = "createdAt", source = "createdAt", qualifiedByName = "dateToMillis")
     @Mapping(target = "updatedAt", source = "updatedAt", qualifiedByName = "dateToMillis")
     @Mapping(target = "type", constant = "payment_line_items")
-//    @Mapping(target = "data", expression = "java(serializePaymentLineItemData(paymentLineItem))")
+    @Mapping(target = "data", expression = "java(serializePaymentLineItemData(paymentLineItem))")
     Entity mapPaymentLineItemToEntityProto(PaymentLineItem paymentLineItem);
 
     /**
@@ -147,10 +146,12 @@ public interface EntityMapper {
      * Serializes generic entity data to ByteString
      */
     default ByteString serializeEntityData(SCDEntity entity) {
-        try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ObjectOutputStream oos = new ObjectOutputStream(baos)) {
-            oos.writeObject(entity);
-            return ByteString.copyFrom(baos.toByteArray());
+        try {
+            // Use Jackson to serialize to JSON
+            ObjectMapper mapper = new ObjectMapper();
+            byte[] jsonBytes = mapper.writeValueAsBytes(entity);
+
+            return ByteString.copyFrom(jsonBytes);
         } catch (IOException e) {
             throw new RuntimeException("Error serializing entity data", e);
         }
@@ -169,13 +170,11 @@ public interface EntityMapper {
             jobData.put("companyId", job.getCompanyId());
             jobData.put("contractorId", job.getContractorId());
 
-            // Serialize the map
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ObjectOutputStream oos = new ObjectOutputStream(baos);
-            oos.writeObject(jobData);
-            oos.close();
+            // Use Jackson to serialize to JSON
+            ObjectMapper mapper = new ObjectMapper();
+            byte[] jsonBytes = mapper.writeValueAsBytes(jobData);
 
-            return ByteString.copyFrom(baos.toByteArray());
+            return ByteString.copyFrom(jsonBytes);
         } catch (IOException e) {
             throw new RuntimeException("Error serializing job data", e);
         }
@@ -194,13 +193,11 @@ public interface EntityMapper {
             timelogData.put("type", timelog.getType());
             timelogData.put("jobUid", timelog.getJobUid());
 
-            // Serialize the map
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ObjectOutputStream oos = new ObjectOutputStream(baos);
-            oos.writeObject(timelogData);
-            oos.close();
+            // Use Jackson to serialize to JSON
+            ObjectMapper mapper = new ObjectMapper();
+            byte[] jsonBytes = mapper.writeValueAsBytes(timelogData);
 
-            return ByteString.copyFrom(baos.toByteArray());
+            return ByteString.copyFrom(jsonBytes);
         } catch (IOException e) {
             throw new RuntimeException("Error serializing timelog data", e);
         }
@@ -218,13 +215,11 @@ public interface EntityMapper {
             paymentLineItemData.put("amount", paymentLineItem.getAmount());
             paymentLineItemData.put("status", paymentLineItem.getStatus());
 
-            // Serialize the map
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ObjectOutputStream oos = new ObjectOutputStream(baos);
-            oos.writeObject(paymentLineItemData);
-            oos.close();
+            // Use Jackson to serialize to JSON
+            ObjectMapper mapper = new ObjectMapper();
+            byte[] jsonBytes = mapper.writeValueAsBytes(paymentLineItemData);
 
-            return ByteString.copyFrom(baos.toByteArray());
+            return ByteString.copyFrom(jsonBytes);
         } catch (IOException e) {
             throw new RuntimeException("Error serializing payment line item data", e);
         }
