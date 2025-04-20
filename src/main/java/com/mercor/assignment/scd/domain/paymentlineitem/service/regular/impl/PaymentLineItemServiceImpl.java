@@ -18,10 +18,12 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service(ServiceName.PAYMENT_LINE_ITEMS_SERVICE)
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class PaymentLineItemServiceImpl implements PaymentLineItemService {
 
   private final PaymentLineItemRepository paymentLineItemRepository;
@@ -104,6 +106,7 @@ public class PaymentLineItemServiceImpl implements PaymentLineItemService {
   }
 
   @Override
+  @Transactional
   public PaymentLineItem createNewVersion(String id, Map<String, Object> fieldsToUpdate) {
     if (!SCDCommonValidators.validId.isValid(id)) {
       throw new ValidationException("Invalid Payment Line Item ID format");
@@ -119,6 +122,7 @@ public class PaymentLineItemServiceImpl implements PaymentLineItemService {
   }
 
   @Override
+  @Transactional
   public PaymentLineItem createEntity(PaymentLineItem entity) {
     // Generate a new entity ID if not set
     if (entity.getId() == null || entity.getId().isEmpty()) {

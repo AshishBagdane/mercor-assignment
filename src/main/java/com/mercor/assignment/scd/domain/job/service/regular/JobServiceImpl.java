@@ -26,6 +26,7 @@ import java.util.Optional;
  */
 @Service(ServiceName.JOB_SERVICE)
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class JobServiceImpl implements JobService {
 
     private final JobRepository jobRepository;
