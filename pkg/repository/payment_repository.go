@@ -3,6 +3,7 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -144,9 +145,8 @@ func convertPaymentProtoToModel(paymentProto *paymentlineitems.PaymentLineItemPr
 
 // convertEntityToPayment converts a generic entity to a payment model
 func convertEntityToPayment(entity *common.Entity) *paymentmodel.PaymentLineItem {
-	// In a real implementation, parse the entity.Data to get payment-specific fields
-	// For now, create a payment with basic SCD fields set
-	return &paymentmodel.PaymentLineItem{
+	// Create payment with basic SCD fields
+	payment := &paymentmodel.PaymentLineItem{
 		BaseSCDEntity: models.BaseSCDEntity{
 			ID:        entity.Id,
 			Version:   int(entity.Version),
@@ -154,12 +154,30 @@ func convertEntityToPayment(entity *common.Entity) *paymentmodel.PaymentLineItem
 			CreatedAt: time.Unix(0, entity.CreatedAt*1000000),
 			UpdatedAt: time.Unix(0, entity.UpdatedAt*1000000),
 		},
-		// Payment-specific fields would come from parsing entity.Data
-		JobUID:     "",        // Placeholder
-		TimelogUID: "",        // Placeholder
-		Amount:     0.0,       // Placeholder
-		Status:     "unknown", // Placeholder
 	}
+
+	// Decode the data to get payment-specific fields
+	if len(entity.Data) > 0 {
+		// Parse JSON data
+		var paymentData map[string]interface{}
+		if err := json.Unmarshal(entity.Data, &paymentData); err == nil {
+			// Extract payment fields
+			if jobUID, ok := paymentData["jobUid"].(string); ok {
+				payment.JobUID = jobUID
+			}
+			if timelogUID, ok := paymentData["timelogUid"].(string); ok {
+				payment.TimelogUID = timelogUID
+			}
+			if amount, ok := paymentData["amount"].(float64); ok {
+				payment.Amount = amount
+			}
+			if status, ok := paymentData["status"].(string); ok {
+				payment.Status = status
+			}
+		}
+	}
+
+	return payment
 }
 
 // GetPaymentLineItemsForTimelogRemote retrieves payment line items for a timelog from the SCD service

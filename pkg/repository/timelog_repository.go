@@ -3,6 +3,7 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -131,9 +132,8 @@ func convertTimelogProtoToModel(timelogProto *timelog.TimelogProto) *timelogmode
 
 // convertEntityToTimelog converts a generic entity to a timelog model
 func convertEntityToTimelog(entity *common.Entity) *timelogmodel.Timelog {
-	// In a real implementation, parse the entity.Data to get timelog-specific fields
-	// For now, create a timelog with basic SCD fields set
-	return &timelogmodel.Timelog{
+	// Create timelog with basic SCD fields
+	timelog := &timelogmodel.Timelog{
 		BaseSCDEntity: models.BaseSCDEntity{
 			ID:        entity.Id,
 			Version:   int(entity.Version),
@@ -141,11 +141,31 @@ func convertEntityToTimelog(entity *common.Entity) *timelogmodel.Timelog {
 			CreatedAt: time.Unix(0, entity.CreatedAt*1000000),
 			UpdatedAt: time.Unix(0, entity.UpdatedAt*1000000),
 		},
-		// Timelog-specific fields would come from parsing entity.Data
-		Duration:  0,         // Placeholder
-		TimeStart: 0,         // Placeholder
-		TimeEnd:   0,         // Placeholder
-		Type:      "unknown", // Placeholder
-		JobUID:    "",        // Placeholder
 	}
+
+	// Decode the data to get timelog-specific fields
+	if len(entity.Data) > 0 {
+		// Parse JSON data
+		var timelogData map[string]interface{}
+		if err := json.Unmarshal(entity.Data, &timelogData); err == nil {
+			// Extract timelog fields
+			if duration, ok := timelogData["duration"].(float64); ok {
+				timelog.Duration = int64(duration)
+			}
+			if timeStart, ok := timelogData["timeStart"].(float64); ok {
+				timelog.TimeStart = int64(timeStart)
+			}
+			if timeEnd, ok := timelogData["timeEnd"].(float64); ok {
+				timelog.TimeEnd = int64(timeEnd)
+			}
+			if type_, ok := timelogData["type"].(string); ok {
+				timelog.Type = type_
+			}
+			if jobUID, ok := timelogData["jobUid"].(string); ok {
+				timelog.JobUID = jobUID
+			}
+		}
+	}
+
+	return timelog
 }

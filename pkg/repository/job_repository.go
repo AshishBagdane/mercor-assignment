@@ -3,6 +3,7 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -167,9 +168,8 @@ func convertJobProtoToModel(jobProto *job.JobProto) *jobmodel.Job {
 
 // convertEntityToJob converts a generic entity to a job model
 func convertEntityToJob(entity *common.Entity) *jobmodel.Job {
-	// In a real implementation, parse the entity.Data to get job-specific fields
-	// For now, create a job with basic SCD fields set
-	return &jobmodel.Job{
+	// Create job with basic SCD fields
+	job := &jobmodel.Job{
 		BaseSCDEntity: models.BaseSCDEntity{
 			ID:        entity.Id,
 			Version:   int(entity.Version),
@@ -177,13 +177,32 @@ func convertEntityToJob(entity *common.Entity) *jobmodel.Job {
 			CreatedAt: time.Unix(0, entity.CreatedAt*1000000),
 			UpdatedAt: time.Unix(0, entity.UpdatedAt*1000000),
 		},
-		// Job-specific fields would come from parsing entity.Data
-		Status:       "active", // Placeholder
-		Rate:         0,        // Placeholder
-		Title:        "",       // Placeholder
-		CompanyID:    "",       // Placeholder
-		ContractorID: "",       // Placeholder
 	}
+
+	// Decode the data to get job-specific fields
+	if len(entity.Data) > 0 {
+		var jobData map[string]interface{}
+		if err := json.Unmarshal(entity.Data, &jobData); err == nil {
+			// Extract job fields
+			if status, ok := jobData["status"].(string); ok {
+				job.Status = status
+			}
+			if title, ok := jobData["title"].(string); ok {
+				job.Title = title
+			}
+			if companyId, ok := jobData["companyId"].(string); ok {
+				job.CompanyID = companyId
+			}
+			if contractorId, ok := jobData["contractorId"].(string); ok {
+				job.ContractorID = contractorId
+			}
+			if rate, ok := jobData["rate"].(float64); ok {
+				job.Rate = rate
+			}
+		}
+	}
+
+	return job
 }
 
 // GetJobRemote retrieves a job by ID from the SCD service
