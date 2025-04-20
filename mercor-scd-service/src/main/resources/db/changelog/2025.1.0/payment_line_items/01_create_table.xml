@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.5.xsd">
+
+  <changeSet id="3" author="mercor_developer">
+    <comment>Create Payment Line Items SCD table</comment>
+    <createTable tableName="payment_line_items">
+      <column name="id" type="varchar(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="version" type="int">
+        <constraints nullable="false"/>
+      </column>
+      <column name="uid" type="varchar(255)">
+        <constraints primaryKey="true" primaryKeyName="pk_payment_line_items_uid"/>
+      </column>
+      <column name="job_uid" type="varchar(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="timelog_uid" type="varchar(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="amount" type="decimal(10,2)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="status" type="varchar(50)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+        <constraints nullable="false"/>
+      </column>
+      <column name="updated_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+
+    <addUniqueConstraint
+      constraintName="uk_payment_line_items_id_version"
+      tableName="payment_line_items"
+      columnNames="id, version"/>
+
+    <createIndex indexName="idx_payment_line_items_id" tableName="payment_line_items">
+      <column name="id"/>
+    </createIndex>
+
+    <createIndex indexName="idx_payment_line_items_job_uid" tableName="payment_line_items">
+      <column name="job_uid"/>
+    </createIndex>
+
+    <createIndex indexName="idx_payment_line_items_timelog_uid" tableName="payment_line_items">
+      <column name="timelog_uid"/>
+    </createIndex>
+
+    <addForeignKeyConstraint
+      baseTableName="payment_line_items"
+      baseColumnNames="job_uid"
+      constraintName="fk_payment_line_items_jobs"
+      referencedTableName="jobs"
+      referencedColumnNames="uid"
+      onDelete="RESTRICT"
+      onUpdate="RESTRICT"/>
+
+    <addForeignKeyConstraint
+      baseTableName="payment_line_items"
+      baseColumnNames="timelog_uid"
+      constraintName="fk_payment_line_items_timelogs"
+      referencedTableName="timelogs"
+      referencedColumnNames="uid"
+      onDelete="RESTRICT"
+      onUpdate="RESTRICT"/>
+  </changeSet>
+</databaseChangeLog>

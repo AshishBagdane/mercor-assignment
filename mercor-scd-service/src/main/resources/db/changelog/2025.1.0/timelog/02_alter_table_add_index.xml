@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.5.xsd">
+
+  <changeSet id="4" author="mercor_developer">
+    <comment>Create optimized indexes for SCD tables</comment>
+
+    <!-- Timelogs table optimization indexes -->
+    <createIndex indexName="idx_timelogs_id_version" tableName="timelogs">
+      <column name="id"/>
+      <column name="version" descending="true"/>
+    </createIndex>
+
+    <createIndex indexName="idx_timelogs_job_uid_time_start_time_end" tableName="timelogs">
+      <column name="job_uid"/>
+      <column name="time_start"/>
+      <column name="time_end"/>
+    </createIndex>
+
+  </changeSet>
+</databaseChangeLog>

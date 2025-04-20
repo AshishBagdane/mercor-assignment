@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.mercor.assignment.scd";
+option java_outer_classname = "TestServiceProto";
+
+package test;
+
+// A simple test service
+service TestService {
+  // Simple ping method to verify the connection
+  rpc Ping(PingRequest) returns (PingResponse);
+
+  // A method to test getting the latest version of an entity
+  rpc GetLatestVersion(EntityRequest) returns (EntityResponse);
+}
+
+// The request message for the Ping method
+message PingRequest {
+  string message = 1;
+}
+
+// The response message for the Ping method
+message PingResponse {
+  string message = 1;
+  int64 timestamp = 2;
+}
+
+// Request to get entity by ID
+message EntityRequest {
+  string entity_id = 1;
+  string entity_type = 2; // e.g., "job", "timelog", "paymentlineitem"
+}
+
+// Response with entity version information
+message EntityResponse {
+  string uid = 1;
+  string id = 2;
+  int32 version = 3;
+  bool is_latest = 4;
+  int64 created_at = 5;
+}

@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package com.mercor.assignment.scd.domain.core;
+
+import "com/mercor/assignment/scd/domain/core/request.proto";
+import "com/mercor/assignment/scd/domain/core/response.proto";
+
+option java_multiple_files = true;
+option java_package = "com.mercor.assignment.scd.domain.core";
+option java_outer_classname = "CoreServiceProto";
+option go_package = "github.com/mercor/assignment/scd/domain/core";
+
+// Generic SCD service for common operations across entity types
+service SCDService {
+  // Common SCD operations
+  rpc GetLatestVersion (GetLatestVersionRequest) returns (EntityResponse);
+  rpc GetVersionHistory (GetVersionHistoryRequest) returns (EntityListResponse);
+  rpc Query (QueryRequest) returns (EntityListResponse);
+  rpc Update (UpdateRequest) returns (EntityResponse);
+  rpc BatchGet (BatchGetRequest) returns (BatchResponse);
+  rpc BatchUpdate (BatchUpdateRequest) returns (BatchResponse);
+}

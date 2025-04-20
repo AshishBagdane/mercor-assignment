@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package com.mercor.assignment.scd.domain.job;
+
+import "com/mercor/assignment/scd/domain/job/request.proto";
+import "com/mercor/assignment/scd/domain/job/response.proto";
+
+option java_multiple_files = true;
+option java_package = "com.mercor.assignment.scd.domain.job";
+option java_outer_classname = "JobServiceProto";
+option go_package = "github.com/mercor/assignment/scd/domain/job";
+
+// Job-specific service
+service JobService {
+  rpc GetActiveJobsForCompany (GetActiveJobsForCompanyRequest) returns (JobListResponse);
+  rpc GetActiveJobsForContractor (GetActiveJobsForContractorRequest) returns (JobListResponse);
+  rpc GetJobsWithRateAbove (GetJobsWithRateAboveRequest) returns (JobListResponse);
+  rpc UpdateStatus (UpdateJobStatusRequest) returns (JobResponse);
+  rpc UpdateRate (UpdateJobRateRequest) returns (JobResponse);
+}

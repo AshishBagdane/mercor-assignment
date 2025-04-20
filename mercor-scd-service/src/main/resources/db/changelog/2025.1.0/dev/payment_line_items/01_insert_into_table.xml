@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.5.xsd">
+
+  <changeSet id="7" author="mercor_developer">
+    <comment>Insert sample data for Payment Line Items table</comment>
+
+    <!-- Software Engineer payment line items -->
+    <insert tableName="payment_line_items">
+      <column name="id">li_AAABk__7JGVd0tliAnIQOA61</column>
+      <column name="version">1</column>
+      <column name="uid">li_uid_AAABk__7JGX02JOi4YaGHAfT</column>
+      <column name="job_uid">job_uid_ywij5sh1tvfp5nkq7azav</column>
+      <column name="timelog_uid">tl_uid_AAABk__7GgmK5l5VWLv3zcXZ</column>
+      <column name="amount">35.42</column>
+      <column name="status">not-paid</column>
+      <column name="created_at">2023-03-17 09:00:00</column>
+      <column name="updated_at">2023-03-17 09:00:00</column>
+    </insert>
+
+    <insert tableName="payment_line_items">
+      <column name="id">li_AAABk__7JGVd0tliAnIQOA61</column>
+      <column name="version">2</column>
+      <column name="uid">li_uid_AAABlB5Yf5MbU3tZyhCJzBhI</column>
+      <column name="job_uid">job_uid_ywij5sh1tvfp5nkq7azav</column>
+      <column name="timelog_uid">tl_uid_AAABk__7GgmK5l5VWLv3zcXZ</column>
+      <column name="amount">35.42</column>
+      <column name="status">paid</column>
+      <column name="created_at">2023-03-25 15:30:00</column>
+      <column name="updated_at">2023-03-25 15:30:00</column>
+    </insert>
+
+    <insert tableName="payment_line_items">
+      <column name="id">li_EEEFo__1Ln8A0XyQ-FhiprsU</column>
+      <column name="version">1</column>
+      <column name="uid">li_uid_EEEFo__1Ln9zA0Nw5rpo9Mv0o</column>
+      <column name="job_uid">job_uid_ywij5sh1tvfp5nkq7azav</column>
+      <column name="timelog_uid">tl_uid_AAABk__7Gj4tcqi1zfymLXsM</column>
+      <column name="amount">70.54</column>
+      <column name="status">not-paid</column>
+      <column name="created_at">2023-03-18 14:30:00</column>
+      <column name="updated_at">2023-03-18 14:30:00</column>
+    </insert>
+
+    <!-- ML Engineer payment line items -->
+    <insert tableName="payment_line_items">
+      <column name="id">li_FFFGp__2Mo9B1YzR-GijqstV</column>
+      <column name="version">1</column>
+      <column name="uid">li_uid_FFFGp__2Mo0AB1Ox6sqp0Nw1p</column>
+      <column name="job_uid">job_uid_f9krvh7djop51s2z8ta</column>
+      <column name="timelog_uid">tl_uid_BBBCl__8HnmL6m6WXMw4zdYA</column>
+      <column name="amount">178.87</column>
+      <column name="status">not-paid</column>
+      <column name="created_at">2023-02-22 10:15:00</column>
+      <column name="updated_at">2023-02-22 10:15:00</column>
+    </insert>
+
+    <insert tableName="payment_line_items">
+      <column name="id">li_FFFGp__2Mo9B1YzR-GijqstV</column>
+      <column name="version">2</column>
+      <column name="uid">li_uid_FFFGp__2MraP8o8ZZOy6bfZC</column>
+      <column name="job_uid">job_uid_f9krvh7djop51s2z8ta</column>
+      <column name="timelog_uid">tl_uid_BBBCl__8HnmL6m6WXMw4zdYA</column>
+      <column name="amount">178.87</column>
+      <column name="status">paid</column>
+      <column name="created_at">2023-03-01 16:45:00</column>
+      <column name="updated_at">2023-03-01 16:45:00</column>
+    </insert>
+
+    <!-- UI Designer payment line items -->
+    <insert tableName="payment_line_items">
+      <column name="id">li_GGGHq__3Np0C2ZAS-HjkrtuW</column>
+      <column name="version">1</column>
+      <column name="uid">li_uid_GGGHq__3Np1BC2Py7trq1Ox2q</column>
+      <column name="job_uid">job_uid_r6tmn8f2jkl4p9v7xze</column>
+      <column name="timelog_uid">tl_uid_CCCDm__9Jl7xyLu3pnm7Kt8m</column>
+      <column name="amount">223.79</column>
+      <column name="status">not-paid</column>
+      <column name="created_at">2023-03-12 11:00:00</column>
+      <column name="updated_at">2023-03-12 11:00:00</column>
+    </insert>
+
+    <insert tableName="payment_line_items">
+      <column name="id">li_GGGHq__3Np0C2ZAS-HjkrtuW</column>
+      <column name="version">2</column>
+      <column name="uid">li_uid_GGGHq__3NsbQ9p9aaP7cgaD</column>
+      <column name="job_uid">job_uid_r6tmn8f2jkl4p9v7xze</column>
+      <column name="timelog_uid">tl_uid_CCCDm__9Jl7xyLu3pnm7Kt8m</column>
+      <column name="amount">223.79</column>
+      <column name="status">paid</column>
+      <column name="created_at">2023-03-20 14:30:00</column>
+      <column name="updated_at">2023-03-20 14:30:00</column>
+    </insert>
+
+    <!-- Data Engineer payment line items with 3 status changes -->
+    <insert tableName="payment_line_items">
+      <column name="id">li_HHHIr__4Oq1D3abT-IklsuvX</column>
+      <column name="version">1</column>
+      <column name="uid">li_uid_HHHIr__4Oq2CD3Qz8usr2Py3r</column>
+      <column name="job_uid">job_uid_2kvhm7tpf9rz4jx3cqn</column>
+      <column name="timelog_uid">tl_uid_DDDEn__0KpoN7n7YYNx5aeZB</column>
+      <column name="amount">284.23</column>
+      <column name="status">not-paid</column>
+      <column name="created_at">2023-04-12 09:45:00</column>
+      <column name="updated_at">2023-04-12 09:45:00</column>
+    </insert>
+
+    <insert tableName="payment_line_items">
+      <column name="id">li_HHHIr__4Oq1D3abT-IklsuvX</column>
+      <column name="version">2</column>
+      <column name="uid">li_uid_HHHIr__4OtcR0q0bbQ8dhbE</column>
+      <column name="job_uid">job_uid_2kvhm7tpf9rz4jx3cqn</column>
+      <column name="timelog_uid">tl_uid_DDDEn__0KpoN7n7YYNx5aeZB</column>
+      <column name="amount">284.23</column>
+      <column name="status">processing</column>
+      <column name="created_at">2023-04-15 10:30:00</column>
+      <column name="updated_at">2023-04-15 10:30:00</column>
+    </insert>
+
+    <insert tableName="payment_line_items">
+      <column name="id">li_HHHIr__4Oq1D3abT-IklsuvX</column>
+      <column name="version">3</column>
+      <column name="uid">li_uid_HHHIr__4OudS1r1ccR9eicF</column>
+      <column name="job_uid">job_uid_2kvhm7tpf9rz4jx3cqn</column>
+      <column name="timelog_uid">tl_uid_DDDEn__0KpoN7n7YYNx5aeZB</column>
+      <column name="amount">284.23</column>
+      <column name="status">paid</column>
+      <column name="created_at">2023-04-18 16:15:00</column>
+      <column name="updated_at">2023-04-18 16:15:00</column>
+    </insert>
+  </changeSet>
+</databaseChangeLog>

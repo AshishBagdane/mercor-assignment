@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package com.mercor.assignment.scd.domain.core;
+
+import "com/mercor/assignment/scd/domain/common/types.proto";
+
+option java_multiple_files = true;
+option java_package = "com.mercor.assignment.scd.domain.core";
+option java_outer_classname = "CoreResponseProto";
+option go_package = "github.com/mercor/assignment/scd/domain/core";
+
+// Common response messages
+message EntityResponse {
+  com.mercor.assignment.scd.domain.common.Entity entity = 1;
+}
+
+message EntityListResponse {
+  repeated com.mercor.assignment.scd.domain.common.Entity entities = 1;
+}
+
+message BatchResponse {
+  repeated com.mercor.assignment.scd.domain.common.Entity entities = 1;
+  map<string, string> errors = 2;
+  int32 success_count = 3;
+  int32 failure_count = 4;
+}
