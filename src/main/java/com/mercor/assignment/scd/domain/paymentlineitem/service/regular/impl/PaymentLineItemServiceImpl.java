@@ -5,6 +5,7 @@ import com.mercor.assignment.scd.common.errorhandling.exceptions.ValidationExcep
 import com.mercor.assignment.scd.domain.core.constants.ServiceName;
 import com.mercor.assignment.scd.domain.core.enums.EntityType;
 import com.mercor.assignment.scd.domain.core.util.UidGenerator;
+import com.mercor.assignment.scd.domain.core.validation.SCDValidators.SCDCommonValidators;
 import com.mercor.assignment.scd.domain.paymentlineitem.model.PaymentLineItem;
 import com.mercor.assignment.scd.domain.paymentlineitem.repository.PaymentLineItemRepository;
 import com.mercor.assignment.scd.domain.paymentlineitem.service.regular.PaymentLineItemService;
@@ -28,11 +29,17 @@ public class PaymentLineItemServiceImpl implements PaymentLineItemService {
 
   @Override
   public List<PaymentLineItem> getPaymentLineItemsForJob(String jobUid) {
+    if (!SCDCommonValidators.validUid.isValid(jobUid)) {
+      throw new ValidationException("Invalid Job UID format");
+    }
     return paymentLineItemRepository.findByJobUid(jobUid);
   }
 
   @Override
   public List<PaymentLineItem> getPaymentLineItemsForTimelog(String timelogUid) {
+    if (!SCDCommonValidators.validUid.isValid(timelogUid)) {
+      throw new ValidationException("Invalid Timelog UID format");
+    }
     return paymentLineItemRepository.findByTimelogUid(timelogUid);
   }
 
@@ -43,6 +50,10 @@ public class PaymentLineItemServiceImpl implements PaymentLineItemService {
 
   @Override
   public PaymentLineItem markAsPaid(String id) {
+    if (!SCDCommonValidators.validId.isValid(id)) {
+      throw new ValidationException("Invalid Payment Line Item ID format");
+    }
+
     final PaymentLineItem paymentLineItem = paymentLineItemRepository.findLatestVersionById(id)
         .orElseThrow(() -> new EntityNotFoundException("Payment line item not found with ID: " + id));
 
@@ -68,21 +79,36 @@ public class PaymentLineItemServiceImpl implements PaymentLineItemService {
 
   @Override
   public Optional<PaymentLineItem> findLatestVersionById(String id) {
+    if (!SCDCommonValidators.validId.isValid(id)) {
+      throw new ValidationException("Invalid Payment Line Item ID format");
+    }
+
     return paymentLineItemRepository.findLatestVersionById(id);
   }
 
   @Override
   public List<PaymentLineItem> findAllVersionsById(String id) {
+    if (!SCDCommonValidators.validId.isValid(id)) {
+      throw new ValidationException("Invalid Payment Line Item ID format");
+    }
+
     return paymentLineItemRepository.findAllVersionsById(id);
   }
 
   @Override
   public Optional<PaymentLineItem> findByUid(String uid) {
+    if (!SCDCommonValidators.validUid.isValid(uid)) {
+      throw new ValidationException("Invalid Payment Line Item UID format");
+    }
     return paymentLineItemRepository.findByUid(uid);
   }
 
   @Override
   public PaymentLineItem createNewVersion(String id, Map<String, Object> fieldsToUpdate) {
+    if (!SCDCommonValidators.validId.isValid(id)) {
+      throw new ValidationException("Invalid Payment Line Item ID format");
+    }
+
     Optional<PaymentLineItem> latestVersionOpt = findLatestVersionById(id);
     if (latestVersionOpt.isEmpty()) {
       throw new EntityNotFoundException("Job with ID " + id + " not found");
