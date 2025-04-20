@@ -1,8 +1,12 @@
 package com.mercor.assignment.scd.domain.core.constants;
 
-public interface ServiceName {
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
-  String JOB_SERVICE = "jobServiceImpl";
-  String TIMELOG_SERVICE = "timelogServiceImpl";
-  String PAYMENT_LINE_ITEMS_SERVICE = "paymentLineItemsServiceImpl";
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public class ServiceName {
+
+  public static final String JOB_SERVICE = "jobServiceImpl";
+  public static final String TIMELOG_SERVICE = "timelogServiceImpl";
+  public static final String PAYMENT_LINE_ITEMS_SERVICE = "paymentLineItemsServiceImpl";
 }
