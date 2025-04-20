@@ -42,7 +42,7 @@ func main() {
 	jobRepo := repository.NewJobRepository(db, scdClient)
 
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
 	defer cancel()
 
 	// Use existing job ID

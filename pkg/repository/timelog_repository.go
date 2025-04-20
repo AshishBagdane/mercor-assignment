@@ -50,12 +50,6 @@ func (r *TimelogRepository) GetTimelogRemote(ctx context.Context, id string) (*t
 	// Convert response to model
 	timelog := convertEntityToTimelog(resp.Entity)
 
-	// Save to local database for caching
-	if err := r.DB.Create(timelog).Error; err != nil {
-		// Log error but continue - we still have the remote data
-		fmt.Printf("Warning: Failed to cache timelog in local database: %v\n", err)
-	}
-
 	return timelog, nil
 }
 
@@ -72,12 +66,6 @@ func (r *TimelogRepository) AdjustTimelogRemote(ctx context.Context, id string, 
 
 	// Convert response to model
 	adjustedTimelog := convertTimelogProtoToModel(resp.Timelog)
-
-	// Save to local database for caching
-	if err := r.DB.Create(adjustedTimelog).Error; err != nil {
-		// Log error but continue - we still have the remote data
-		fmt.Printf("Warning: Failed to cache adjusted timelog in local database: %v\n", err)
-	}
 
 	return adjustedTimelog, nil
 }
@@ -98,14 +86,6 @@ func (r *TimelogRepository) GetTimelogsForJobRemote(ctx context.Context, jobUID 
 		timelogs = append(timelogs, convertTimelogProtoToModel(tlProto))
 	}
 
-	// Save to local database for caching
-	if len(timelogs) > 0 {
-		if err := r.DB.CreateInBatches(timelogs, 100).Error; err != nil {
-			// Log error but continue - we still have the remote data
-			fmt.Printf("Warning: Failed to cache timelogs in local database: %v\n", err)
-		}
-	}
-
 	return timelogs, nil
 }
 
@@ -124,14 +104,6 @@ func (r *TimelogRepository) GetTimelogHistoryRemote(ctx context.Context, id stri
 	timelogs := make([]*timelogmodel.Timelog, 0, len(resp.Entities))
 	for _, entity := range resp.Entities {
 		timelogs = append(timelogs, convertEntityToTimelog(entity))
-	}
-
-	// Save to local database for caching
-	if len(timelogs) > 0 {
-		if err := r.DB.CreateInBatches(timelogs, 100).Error; err != nil {
-			// Log error but continue - we still have the remote data
-			fmt.Printf("Warning: Failed to cache timelog history in local database: %v\n", err)
-		}
 	}
 
 	return timelogs, nil

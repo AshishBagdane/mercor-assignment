@@ -50,12 +50,6 @@ func (r *PaymentRepository) GetPaymentLineItemRemote(ctx context.Context, id str
 	// Convert response to model
 	payment := convertEntityToPayment(resp.Entity)
 
-	// Save to local database for caching
-	if err := r.DB.Create(payment).Error; err != nil {
-		// Log error but continue - we still have the remote data
-		fmt.Printf("Warning: Failed to cache payment in local database: %v\n", err)
-	}
-
 	return payment, nil
 }
 
@@ -71,12 +65,6 @@ func (r *PaymentRepository) MarkAsPaidRemote(ctx context.Context, id string) (*p
 
 	// Convert response to model
 	paidPayment := convertPaymentProtoToModel(resp.PaymentLineItem)
-
-	// Save to local database for caching
-	if err := r.DB.Create(paidPayment).Error; err != nil {
-		// Log error but continue - we still have the remote data
-		fmt.Printf("Warning: Failed to cache paid payment in local database: %v\n", err)
-	}
 
 	return paidPayment, nil
 }
@@ -97,14 +85,6 @@ func (r *PaymentRepository) GetPaymentLineItemsForJobRemote(ctx context.Context,
 		payments = append(payments, convertPaymentProtoToModel(pliProto))
 	}
 
-	// Save to local database for caching
-	if len(payments) > 0 {
-		if err := r.DB.CreateInBatches(payments, 100).Error; err != nil {
-			// Log error but continue - we still have the remote data
-			fmt.Printf("Warning: Failed to cache payment line items in local database: %v\n", err)
-		}
-	}
-
 	return payments, nil
 }
 
@@ -123,14 +103,6 @@ func (r *PaymentRepository) GetPaymentHistoryRemote(ctx context.Context, id stri
 	payments := make([]*paymentmodel.PaymentLineItem, 0, len(resp.Entities))
 	for _, entity := range resp.Entities {
 		payments = append(payments, convertEntityToPayment(entity))
-	}
-
-	// Save to local database for caching
-	if len(payments) > 0 {
-		if err := r.DB.CreateInBatches(payments, 100).Error; err != nil {
-			// Log error but continue - we still have the remote data
-			fmt.Printf("Warning: Failed to cache payment history in local database: %v\n", err)
-		}
 	}
 
 	return payments, nil
@@ -206,14 +178,6 @@ func (r *PaymentRepository) GetPaymentLineItemsForTimelogRemote(ctx context.Cont
 		payments = append(payments, convertPaymentProtoToModel(pliProto))
 	}
 
-	// Save to local database for caching
-	if len(payments) > 0 {
-		if err := r.DB.CreateInBatches(payments, 100).Error; err != nil {
-			// Log error but continue - we still have the remote data
-			fmt.Printf("Warning: Failed to cache payment line items in local database: %v\n", err)
-		}
-	}
-
 	return payments, nil
 }
 
@@ -233,14 +197,6 @@ func (r *PaymentRepository) GetPaymentLineItemsForContractorRemote(ctx context.C
 	payments := make([]*paymentmodel.PaymentLineItem, 0, len(resp.PaymentLineItems))
 	for _, pliProto := range resp.PaymentLineItems {
 		payments = append(payments, convertPaymentProtoToModel(pliProto))
-	}
-
-	// Save to local database for caching
-	if len(payments) > 0 {
-		if err := r.DB.CreateInBatches(payments, 100).Error; err != nil {
-			// Log error but continue - we still have the remote data
-			fmt.Printf("Warning: Failed to cache payment line items in local database: %v\n", err)
-		}
 	}
 
 	return payments, nil

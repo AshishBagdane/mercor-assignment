@@ -52,14 +52,6 @@ func (r *JobRepository) GetActiveJobsForCompanyRemote(ctx context.Context, compa
 		jobs = append(jobs, convertJobProtoToModel(jobProto))
 	}
 
-	// Save to local database for caching
-	if len(jobs) > 0 {
-		if err := r.DB.CreateInBatches(jobs, 100).Error; err != nil {
-			// Log error but continue - we still have the remote data
-			fmt.Printf("Warning: Failed to cache jobs in local database: %v\n", err)
-		}
-	}
-
 	return jobs, nil
 }
 
@@ -113,12 +105,6 @@ func (r *JobRepository) CreateJobRemote(ctx context.Context, j *jobmodel.Job) (*
 	// Convert response to model
 	createdJob := convertEntityToJob(resp.Entity)
 
-	// Save to local database for caching
-	if err := r.DB.Create(createdJob).Error; err != nil {
-		// Log error but continue - we still have the remote data
-		fmt.Printf("Warning: Failed to cache created job in local database: %v\n", err)
-	}
-
 	return createdJob, nil
 }
 
@@ -135,12 +121,6 @@ func (r *JobRepository) UpdateJobStatusRemote(ctx context.Context, id string, st
 
 	// Convert response to model
 	updatedJob := convertJobProtoToModel(resp.Job)
-
-	// Save to local database for caching
-	if err := r.DB.Create(updatedJob).Error; err != nil {
-		// Log error but continue - we still have the remote data
-		fmt.Printf("Warning: Failed to cache updated job in local database: %v\n", err)
-	}
 
 	return updatedJob, nil
 }
@@ -160,14 +140,6 @@ func (r *JobRepository) GetJobHistoryRemote(ctx context.Context, id string) ([]*
 	jobs := make([]*jobmodel.Job, 0, len(resp.Entities))
 	for _, entity := range resp.Entities {
 		jobs = append(jobs, convertEntityToJob(entity))
-	}
-
-	// Save to local database for caching
-	if len(jobs) > 0 {
-		if err := r.DB.CreateInBatches(jobs, 100).Error; err != nil {
-			// Log error but continue - we still have the remote data
-			fmt.Printf("Warning: Failed to cache job history in local database: %v\n", err)
-		}
 	}
 
 	return jobs, nil
@@ -227,12 +199,6 @@ func (r *JobRepository) GetJobRemote(ctx context.Context, id string) (*jobmodel.
 
 	// Convert response to model
 	job := convertEntityToJob(resp.Entity)
-
-	// Save to local database for caching
-	if err := r.DB.Create(job).Error; err != nil {
-		// Log error but continue - we still have the remote data
-		fmt.Printf("Warning: Failed to cache job in local database: %v\n", err)
-	}
 
 	return job, nil
 }
