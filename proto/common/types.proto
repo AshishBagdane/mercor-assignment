@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package com.mercor.assignment.scd.domain.common;
+
+option java_multiple_files = true;
+option java_package = "com.mercor.assignment.scd.domain.common";
+option java_outer_classname = "CommonTypesProto";
+option go_package = "github.com/mercor-ai/scd-go-client/api/common";
+
+// Common entity representation for SCD
+message Entity {
+  string type = 1;
+  string id = 2;
+  int32 version = 3;
+  string uid = 4;
+  int64 created_at = 5;
+  int64 updated_at = 6;
+  bytes data = 7; // Serialized entity-specific data
+}

@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package com.mercor.assignment.scd.domain.timelog;
+
+option java_multiple_files = true;
+option java_package = "com.mercor.assignment.scd.domain.timelog";
+option java_outer_classname = "TimelogResponseProto";
+option go_package = "github.com/mercor-ai/scd-go-client/api/timelog";
+
+// Timelog message definition
+message TimelogProto {
+  string id = 1;
+  int32 version = 2;
+  string uid = 3;
+  int64 created_at = 4;
+  int64 updated_at = 5;
+  int64 duration = 6;
+  int64 time_start = 7;
+  int64 time_end = 8;
+  string type = 9;
+  string job_uid = 10;
+}
+
+// Timelog-specific response messages
+message TimelogResponse {
+  TimelogProto timelog = 1;
+}
+
+message TimelogListResponse {
+  repeated TimelogProto timelogs = 1;
+}
