@@ -10,6 +10,9 @@ import com.mercor.assignment.scd.domain.job.model.Job;
 import com.mercor.assignment.scd.domain.job.repository.JobRepository;
 import com.mercor.assignment.scd.domain.job.service.JobService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +36,7 @@ public class JobServiceImpl implements JobService {
     private final UidGenerator uidGenerator;
 
     @Override
+    @Cacheable(value = "job:latest", key = "#id", unless = "#result == null")
     public Optional<Job> findLatestVersionById(String id) {
         if (!SCDValidators.SCDCommonValidators.validId.isValid(id)) {
             throw new ValidationException("Invalid job ID format");
@@ -41,6 +45,7 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
+    @Cacheable(value = "job:history", key = "#id", unless = "#result == null")
     public List<Job> findAllVersionsById(String id) {
         if (!SCDValidators.SCDCommonValidators.validId.isValid(id)) {
             throw new ValidationException("Invalid job ID format");
@@ -57,6 +62,13 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
+    @CacheEvict(value = "job:latest", key = "#id")
+    @Caching(evict = {
+        @CacheEvict(value = "job:latest", key = "#id"),
+        @CacheEvict(value = "job:history", key = "#id"),
+        @CacheEvict(value = "job:activeByCompany", allEntries = true),
+        @CacheEvict(value = "job:activeByContractor", allEntries = true)
+    })
     @Transactional
     public Job createNewVersion(String id, Map<String, Object> fieldsToUpdate) {
         if (!SCDValidators.SCDCommonValidators.validId.isValid(id)) {
@@ -102,6 +114,7 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
+    @Cacheable(value = "job:activeByCompany", key = "#companyId", unless = "#result.isEmpty()")
     public List<Job> findActiveJobsForCompany(String companyId) {
         if (!SCDValidators.JobValidators.validCompanyId.isValid(companyId)) {
             throw new ValidationException("Invalid company ID format");
@@ -115,6 +128,7 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
+    @Cacheable(value = "job:activeByContractor", key = "#contractorId", unless = "#result.isEmpty()")
     public List<Job> findActiveJobsForContractor(String contractorId) {
         if (!SCDValidators.JobValidators.validContractorId.isValid(contractorId)) {
             throw new IllegalArgumentException("Invalid contractor ID format");
