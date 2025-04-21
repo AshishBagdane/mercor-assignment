@@ -1,20 +1,20 @@
 services:
   # Add your SCD service
   mercor-scd-service:
-    image: docker.io/library/mercor-scd-service:latest
+    image: ${SCD_SERVICE_IMAGE:-docker.io/library/mercor-scd-service:latest}
     environment:
-      - SPRING_PROFILES_ACTIVE=dev
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_NAME=employment
-      - DB_USERNAME=user
-      - DB_PASSWORD=password
-      - SPRING_DATA_REDIS_HOST=redis-stack
-      - SPRING_DATA_REDIS_PORT=6379
-      - MANAGEMENT_ENDPOINTS=health,metrics,prometheus
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILE:-dev}
+      - DB_HOST=${DB_HOST:-postgres}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_NAME=${DB_NAME:-employment}
+      - DB_USERNAME=${DB_USERNAME:-user}
+      - DB_PASSWORD=${DB_PASSWORD:-password}
+      - SPRING_DATA_REDIS_HOST=${REDIS_HOST:-redis-stack}
+      - SPRING_DATA_REDIS_PORT=${REDIS_PORT:-6379}
+      - MANAGEMENT_ENDPOINTS=${MANAGEMENT_ENDPOINTS:-health,metrics,prometheus}
     ports:
-      - "8080:8080"  # HTTP port
-      - "50051:50051"  # gRPC port
+      - "${HTTP_PORT:-8080}:8080"  # HTTP port
+      - "${GRPC_PORT:-50051}:50051"  # gRPC port
     depends_on:
       postgres:
         condition: service_healthy
@@ -22,55 +22,55 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      interval: ${HEALTHCHECK_INTERVAL:-30s}
+      timeout: ${HEALTHCHECK_TIMEOUT:-10s}
+      retries: ${HEALTHCHECK_RETRIES:-3}
     restart: unless-stopped
     networks:
       - sdc-network
 
   postgres:
-    image: postgres:latest
+    image: ${POSTGRES_IMAGE:-postgres:latest}
     environment:
-      POSTGRES_DB: employment
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
+      POSTGRES_DB: ${DB_NAME:-employment}
+      POSTGRES_USER: ${DB_USERNAME:-user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d employment"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-user} -d ${DB_NAME:-employment}"]
+      interval: ${PG_HEALTHCHECK_INTERVAL:-10s}
+      timeout: ${PG_HEALTHCHECK_TIMEOUT:-5s}
+      retries: ${PG_HEALTHCHECK_RETRIES:-5}
     networks:
       - sdc-network
 
   redis-stack:
-    image: redis/redis-stack:latest
+    image: ${REDIS_IMAGE:-redis/redis-stack:latest}
     ports:
-      - "6379:6379"
-      - "8001:8001"
+      - "${REDIS_PORT:-6379}:6379"
+      - "${REDIS_UI_PORT:-8001}:8001"
     volumes:
       - redis_data:/data
     restart: always
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      interval: ${REDIS_HEALTHCHECK_INTERVAL:-10s}
+      timeout: ${REDIS_HEALTHCHECK_TIMEOUT:-5s}
+      retries: ${REDIS_HEALTHCHECK_RETRIES:-5}
     networks:
       - sdc-network
 
   # Add Postgres exporter
   postgres-exporter:
-    image: prometheuscommunity/postgres-exporter:latest
+    image: ${PG_EXPORTER_IMAGE:-prometheuscommunity/postgres-exporter:latest}
     environment:
-      DATA_SOURCE_NAME: "postgresql://user:password@postgres:5432/employment?sslmode=disable"
+      DATA_SOURCE_NAME: "postgresql://${DB_USERNAME:-user}:${DB_PASSWORD:-password}@${DB_HOST:-postgres}:${DB_PORT:-5432}/${DB_NAME:-employment}?sslmode=disable"
     ports:
-      - "9187:9187"
+      - "${PG_EXPORTER_PORT:-9187}:9187"
     networks:
       - sdc-network
     depends_on:
@@ -78,20 +78,20 @@ services:
 
   # Add Redis exporter
   redis-exporter:
-    image: oliver006/redis_exporter:latest
+    image: ${REDIS_EXPORTER_IMAGE:-oliver006/redis_exporter:latest}
     environment:
-      REDIS_ADDR: "redis-stack:6379"
+      REDIS_ADDR: "${REDIS_HOST:-redis-stack}:${REDIS_PORT:-6379}"
     ports:
-      - "9121:9121"
+      - "${REDIS_EXPORTER_PORT:-9121}:9121"
     networks:
       - sdc-network
     depends_on:
       - redis-stack
 
   prometheus:
-    image: prom/prometheus:latest
+    image: ${PROMETHEUS_IMAGE:-prom/prometheus:latest}
     ports:
-      - "9090:9090"
+      - "${PROMETHEUS_PORT:-9090}:9090"
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
@@ -104,9 +104,9 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
+      interval: ${PROM_HEALTHCHECK_INTERVAL:-10s}
+      timeout: ${PROM_HEALTHCHECK_TIMEOUT:-5s}
+      retries: ${PROM_HEALTHCHECK_RETRIES:-3}
     networks:
       - sdc-network
     depends_on:
@@ -117,23 +117,23 @@ services:
       - "host.docker.internal:host-gateway"
 
   grafana:
-    image: grafana/grafana:latest
+    image: ${GRAFANA_IMAGE:-grafana/grafana:latest}
     ports:
-      - "3000:3000"
+      - "${GRAFANA_PORT:-3000}:3000"
     volumes:
       - grafana_data:/var/lib/grafana
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=${GRAFANA_ALLOW_SIGNUP:-false}
     depends_on:
       - prometheus
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
+      interval: ${GRAFANA_HEALTHCHECK_INTERVAL:-10s}
+      timeout: ${GRAFANA_HEALTHCHECK_TIMEOUT:-5s}
+      retries: ${GRAFANA_HEALTHCHECK_RETRIES:-3}
     networks:
       - sdc-network
 
