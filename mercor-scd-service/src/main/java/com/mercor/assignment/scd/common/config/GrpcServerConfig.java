@@ -1,6 +1,5 @@
 package com.mercor.assignment.scd.common.config;
 
-import com.mercor.assignment.scd.common.errorhandling.interceptor.GrpcExceptionInterceptor;
 import com.mercor.assignment.scd.domain.TestServiceImpl;
 import com.mercor.assignment.scd.domain.core.service.grpc.SCDGrpcServiceImpl;
 import com.mercor.assignment.scd.domain.job.service.grpc.JobGrpcServiceImpl;
@@ -36,6 +35,7 @@ public class GrpcServerConfig {
   private final TimelogGrpcServiceImpl timelogGrpcService;
   private final PaymentLineItemGrpcServiceImpl paymentLineItemGrpcService;
   private final ServerInterceptor grpcExceptionInterceptor;
+  private final ServerInterceptor grpcRateLimiterInterceptor;
 
   /**
    * Create a lifecycle-managed gRPC server bean
@@ -45,7 +45,8 @@ public class GrpcServerConfig {
   @Bean
   public GrpcServerLifecycle grpcServerLifecycle() {
     return new GrpcServerLifecycle(grpcServerPort,
-        testService, scdGrpcService, jobGrpcService, timelogGrpcService, paymentLineItemGrpcService, grpcExceptionInterceptor);
+        testService, scdGrpcService, jobGrpcService, timelogGrpcService, paymentLineItemGrpcService, grpcExceptionInterceptor,
+        grpcRateLimiterInterceptor);
   }
 
   /**
@@ -60,13 +61,21 @@ public class GrpcServerConfig {
     private final TimelogGrpcServiceImpl timelogGrpcService;
     private final PaymentLineItemGrpcServiceImpl paymentLineItemGrpcService;
     private final ServerInterceptor grpcExceptionInterceptor;
+    private final ServerInterceptor grpcRateLimiterInterceptor;
 
     private Server server;
     private boolean running = false;
 
-    public GrpcServerLifecycle(int port,
-        TestServiceImpl testService, SCDGrpcServiceImpl scdGrpcService, JobGrpcServiceImpl jobGrpcService, TimelogGrpcServiceImpl timelogGrpcService
-    , PaymentLineItemGrpcServiceImpl paymentLineItemGrpcService, ServerInterceptor grpcExceptionInterceptor) {
+    public GrpcServerLifecycle(
+        int port,
+        TestServiceImpl testService,
+        SCDGrpcServiceImpl scdGrpcService,
+        JobGrpcServiceImpl jobGrpcService,
+        TimelogGrpcServiceImpl timelogGrpcService,
+        PaymentLineItemGrpcServiceImpl paymentLineItemGrpcService,
+        ServerInterceptor grpcExceptionInterceptor,
+        ServerInterceptor grpcRateLimiterInterceptor
+    ) {
       this.port = port;
       this.testService = testService;
       this.scdGrpcService = scdGrpcService;
@@ -74,6 +83,7 @@ public class GrpcServerConfig {
       this.timelogGrpcService = timelogGrpcService;
       this.paymentLineItemGrpcService = paymentLineItemGrpcService;
       this.grpcExceptionInterceptor = grpcExceptionInterceptor;
+      this.grpcRateLimiterInterceptor = grpcRateLimiterInterceptor;
     }
 
     @Override
@@ -86,13 +96,15 @@ public class GrpcServerConfig {
             .addService(timelogGrpcService)
             .addService(paymentLineItemGrpcService)
             .addService(ProtoReflectionServiceV1.newInstance())
+            // Order of interceptors is important - rate limiting should be first
+            .intercept(grpcRateLimiterInterceptor)
             .intercept(grpcExceptionInterceptor)
             .build()
             .start();
 
         running = true;
 
-        log.info("gRPC Server started with exception interceptor, listening on port {}", port);
+        log.info("gRPC Server started with rate limiting and exception handling, listening on port {}", port);
       } catch (IOException e) {
         throw new RuntimeException("Failed to start gRPC server", e);
       }
