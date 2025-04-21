@@ -32,6 +32,22 @@ spring:
         format_sql: true
     show-sql: true
 
+
+  # Add these Redis configuration properties
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}  # Leave empty if no password
+    timeout: 2000
+    database: 0
+
+  # Enable caching explicitly
+  cache:
+    type: redis
+    redis:
+      time-to-live: 86400000  # 1 day in milliseconds (matches your config)
+      cache-null-values: false
+
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.xml
     enabled: ${LIQUIBASE_ENABLED:true}
@@ -59,3 +75,8 @@ swagger:
   enabled: true
   path: /api-docs
   ui-path: /swagger-ui
+
+logging:
+  level:
+    org.springframework.cache: TRACE
+    org.springframework.data.redis: DEBUG

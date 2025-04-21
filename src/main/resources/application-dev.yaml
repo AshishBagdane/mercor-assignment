@@ -32,6 +32,21 @@ spring:
         format_sql: true
     show-sql: true
 
+  # Add these Redis configuration properties
+  redis:
+    host: localhost
+    port: 6379
+    password:
+    timeout: 2000
+    database: 0
+
+  # Enable caching explicitly
+  cache:
+    type: redis
+    redis:
+      time-to-live: 86400000  # 1 day in milliseconds (matches your config)
+      cache-null-values: false
+
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master-dev.xml
     enabled: ${LIQUIBASE_ENABLED:true}
@@ -63,3 +78,5 @@ logging:
   level:
     root: INFO
     com.mercor.assignment.scd: INFO
+    org.springframework.cache: TRACE
+    org.springframework.data.redis: DEBUG
