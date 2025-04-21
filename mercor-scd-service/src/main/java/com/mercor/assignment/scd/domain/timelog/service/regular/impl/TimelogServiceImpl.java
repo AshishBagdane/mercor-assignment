@@ -8,6 +8,7 @@ import com.mercor.assignment.scd.domain.core.util.UidGenerator;
 import com.mercor.assignment.scd.domain.core.validation.SCDValidators.SCDCommonValidators;
 import com.mercor.assignment.scd.domain.job.model.Job;
 import com.mercor.assignment.scd.domain.job.service.JobService;
+import com.mercor.assignment.scd.domain.timelog.enums.TimelogType;
 import com.mercor.assignment.scd.domain.timelog.model.Timelog;
 import com.mercor.assignment.scd.domain.timelog.repository.TimelogRepository;
 import com.mercor.assignment.scd.domain.timelog.service.regular.TimelogService;
@@ -46,8 +47,8 @@ public class TimelogServiceImpl implements TimelogService {
 
     @Override
     public List<Timelog> findTimelogsForContractor(String contractorId, Long startTime, Long endTime) {
-        List<Job> jobs = jobService.findActiveJobsForContractor(contractorId);
-        List<String> jobUids = jobs.stream()
+        final List<Job> jobs = jobService.findActiveJobsForContractor(contractorId);
+        final List<String> jobUids = jobs.stream()
             .map(Job::getUid)
             .toList();
 
@@ -74,24 +75,26 @@ public class TimelogServiceImpl implements TimelogService {
         if (!SCDCommonValidators.validId.isValid(timelogId)) {
             throw new ValidationException("Invalid Timelog ID format");
         }
-        Optional<Timelog> latestVersionOpt = findLatestVersionById(timelogId);
+        Optional<Timelog> latestVersionOpt = timelogRepository.findLatestVersionById(timelogId);
 
         if (latestVersionOpt.isEmpty()) {
             throw new EntityNotFoundException("Timelog with ID " + timelogId + " not found");
         }
 
-        Timelog latestVersion = latestVersionOpt.get();
+        final Timelog latestVersion = latestVersionOpt.get();
+
+        final TimelogType type = TimelogType.fromValue(latestVersion.getType());
 
         // Validate that we're not trying to adjust an already adjusted timelog
-        if ("adjusted".equals(latestVersion.getType())) {
+        if (TimelogType.ADJUSTED.equals(type)) {
             throw new ValidationException("Cannot adjust an already adjusted timelog", "ALREADY_ADJUSTED");
         }
 
         // Calculate the new timeEnd based on the timeStart and adjusted duration
-        Long newTimeEnd = latestVersion.getTimeStart() + adjustedDuration;
+        final Long newTimeEnd = latestVersion.getTimeStart() + adjustedDuration;
 
         // Create a new version with the adjusted duration, timeEnd and type
-        Map<String, Object> fieldsToUpdate = new HashMap<>();
+        final Map<String, Object> fieldsToUpdate = new HashMap<>();
         fieldsToUpdate.put("duration", adjustedDuration);
         fieldsToUpdate.put("timeEnd", newTimeEnd);
         fieldsToUpdate.put("type", "adjusted");
@@ -140,13 +143,13 @@ public class TimelogServiceImpl implements TimelogService {
             throw new ValidationException("Invalid Timelog ID format");
         }
 
-        Optional<Timelog> latestVersionOpt = findLatestVersionById(id);
+        Optional<Timelog> latestVersionOpt = timelogRepository.findLatestVersionById(id);
 
         if (latestVersionOpt.isEmpty()) {
             throw new EntityNotFoundException("Timelog with ID " + id + " not found");
         }
 
-        Timelog latestVersion = latestVersionOpt.get();
+        final Timelog latestVersion = latestVersionOpt.get();
         return timelogRepository.createNewVersion(latestVersion, fieldsToUpdate);
     }
 
@@ -165,7 +168,7 @@ public class TimelogServiceImpl implements TimelogService {
         entity.setUid(uidGenerator.generateUid(EntityType.JOBS.getPrefix()));
 
         // Set timestamps
-        Date now = new Date();
+        final Date now = new Date();
         entity.setCreatedAt(now);
         entity.setUpdatedAt(now);
 

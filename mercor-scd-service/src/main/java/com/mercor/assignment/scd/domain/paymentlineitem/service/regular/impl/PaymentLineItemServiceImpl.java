@@ -6,6 +6,7 @@ import com.mercor.assignment.scd.domain.core.constants.ServiceName;
 import com.mercor.assignment.scd.domain.core.enums.EntityType;
 import com.mercor.assignment.scd.domain.core.util.UidGenerator;
 import com.mercor.assignment.scd.domain.core.validation.SCDValidators.SCDCommonValidators;
+import com.mercor.assignment.scd.domain.paymentlineitem.enums.PaymentLineItemStatus;
 import com.mercor.assignment.scd.domain.paymentlineitem.model.PaymentLineItem;
 import com.mercor.assignment.scd.domain.paymentlineitem.repository.PaymentLineItemRepository;
 import com.mercor.assignment.scd.domain.paymentlineitem.service.regular.PaymentLineItemService;
@@ -68,13 +69,15 @@ public class PaymentLineItemServiceImpl implements PaymentLineItemService {
     final PaymentLineItem paymentLineItem = paymentLineItemRepository.findLatestVersionById(id)
         .orElseThrow(() -> new EntityNotFoundException("Payment line item not found with ID: " + id));
 
+    final PaymentLineItemStatus currentStatus = PaymentLineItemStatus.fromValue(paymentLineItem.getStatus());
+
     // Check if the payment line item is already paid
-    if ("paid".equals(paymentLineItem.getStatus())) {
+    if (PaymentLineItemStatus.PAID.equals(currentStatus)) {
       throw new ValidationException("Payment line item is already marked as paid", "ALREADY_PAID");
     }
 
     // Create a map with the updated status
-    Map<String, Object> fieldsToUpdate = new HashMap<>();
+    final Map<String, Object> fieldsToUpdate = new HashMap<>();
     fieldsToUpdate.put("status", "paid");
 
     return paymentLineItemRepository.createNewVersion(paymentLineItem, fieldsToUpdate);
@@ -84,7 +87,7 @@ public class PaymentLineItemServiceImpl implements PaymentLineItemService {
   @Cacheable(value = "payment:totalForContractor",
       key = "#contractorId + ':' + #startTime + ':' + #endTime")
   public BigDecimal getTotalAmountForContractor(String contractorId, Long startTime, Long endTime) {
-    List<PaymentLineItem> paymentLineItems = getPaymentLineItemsForContractor(contractorId, startTime, endTime);
+    final List<PaymentLineItem> paymentLineItems = getPaymentLineItemsForContractor(contractorId, startTime, endTime);
     return paymentLineItems.stream()
         .map(PaymentLineItem::getAmount)
         .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -131,12 +134,12 @@ public class PaymentLineItemServiceImpl implements PaymentLineItemService {
       throw new ValidationException("Invalid Payment Line Item ID format");
     }
 
-    Optional<PaymentLineItem> latestVersionOpt = findLatestVersionById(id);
+    Optional<PaymentLineItem> latestVersionOpt = paymentLineItemRepository.findLatestVersionById(id);
     if (latestVersionOpt.isEmpty()) {
       throw new EntityNotFoundException("Job with ID " + id + " not found");
     }
 
-    PaymentLineItem latestVersion = latestVersionOpt.get();
+    final PaymentLineItem latestVersion = latestVersionOpt.get();
     return paymentLineItemRepository.createNewVersion(latestVersion, fieldsToUpdate);
   }
 
@@ -155,7 +158,7 @@ public class PaymentLineItemServiceImpl implements PaymentLineItemService {
     entity.setUid(uidGenerator.generateUid(EntityType.PAYMENT_LINE_ITEMS.getPrefix()));
 
     // Set timestamps
-    Date now = new Date();
+    final Date now = new Date();
     entity.setCreatedAt(now);
     entity.setUpdatedAt(now);
 
