@@ -75,13 +75,13 @@ public class JobServiceImpl implements JobService {
             throw new ValidationException("Invalid job ID format");
         }
 
-        Optional<Job> latestVersionOpt = findLatestVersionById(id);
+        Optional<Job> latestVersionOpt = jobRepository.findLatestVersionById(id);
 
         if (latestVersionOpt.isEmpty()) {
             throw new EntityNotFoundException("Job with ID " + id + " not found");
         }
 
-        Job latestVersion = latestVersionOpt.get();
+        final Job latestVersion = latestVersionOpt.get();
         return jobRepository.createNewVersion(latestVersion, fieldsToUpdate);
     }
 
@@ -100,7 +100,7 @@ public class JobServiceImpl implements JobService {
         entity.setUid(uidGenerator.generateUid(EntityType.JOBS.getPrefix()));
 
         // Set timestamps
-        Date now = new Date();
+        final Date now = new Date();
         entity.setCreatedAt(now);
         entity.setUpdatedAt(now);
 
@@ -120,7 +120,7 @@ public class JobServiceImpl implements JobService {
             throw new ValidationException("Invalid company ID format");
         }
 
-        Map<String, Object> criteria = new HashMap<>();
+        final Map<String, Object> criteria = new HashMap<>();
         criteria.put("companyId", companyId);
         criteria.put("status", "active");
 
@@ -134,7 +134,7 @@ public class JobServiceImpl implements JobService {
             throw new IllegalArgumentException("Invalid contractor ID format");
         }
 
-        Map<String, Object> criteria = new HashMap<>();
+        final Map<String, Object> criteria = new HashMap<>();
         criteria.put("contractorId", contractorId);
         criteria.put("status", "active");
 
@@ -147,10 +147,10 @@ public class JobServiceImpl implements JobService {
             throw new IllegalArgumentException("Minimum rate must be a non-negative value");
         }
 
-        Map<String, Object> emptyCriteria = new HashMap<>();
-        List<Job> allLatestJobs = jobRepository.findLatestVersionsByCriteria(emptyCriteria);
+        final Map<String, Object> emptyCriteria = new HashMap<>();
+        final List<Job> allLatestJobs = jobRepository.findLatestVersionsByCriteria(emptyCriteria);
 
-        BigDecimal minRateDecimal = new BigDecimal(minRate.toString());
+        final BigDecimal minRateDecimal = new BigDecimal(minRate.toString());
 
         // Filter in memory (not ideal for large datasets)
         return allLatestJobs.stream()
