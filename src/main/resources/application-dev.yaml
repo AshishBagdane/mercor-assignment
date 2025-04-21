@@ -80,3 +80,43 @@ logging:
     com.mercor.assignment.scd: INFO
     org.springframework.cache: TRACE
     org.springframework.data.redis: DEBUG
+
+resilience4j:
+  ratelimiter:
+    configs:
+      default:
+        limitForPeriod: 3                # Reduced from 50
+        limitRefreshPeriod: 10s          # Increased from 1s to make testing easier
+        timeoutDuration: 0s
+        registerHealthIndicator: true
+        eventConsumerBufferSize: 100
+    instances:
+      # Add high limit for reflection service
+      serverReflection:
+        baseConfig: default
+        limitForPeriod: 500  # Much higher than service limits
+      scdService:
+        baseConfig: default
+        limitForPeriod: 5                # Reduced from 100
+      jobService:
+        baseConfig: default
+        limitForPeriod: 3                # Reduced from 60
+      paymentLineItemService:
+        baseConfig: default
+        limitForPeriod: 2                # Reduced from 40
+      timelogService:
+        baseConfig: default
+        limitForPeriod: 4                # Reduced from 50
+
+# Actuator configuration to expose rate limiter metrics
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  health:
+    ratelimiters:
+      enabled: true

@@ -80,3 +80,43 @@ logging:
   level:
     org.springframework.cache: TRACE
     org.springframework.data.redis: DEBUG
+
+resilience4j:
+  ratelimiter:
+    configs:
+      default:
+        limitForPeriod: 50
+        limitRefreshPeriod: 1s
+        timeoutDuration: 0s
+        registerHealthIndicator: true
+        eventConsumerBufferSize: 100
+    instances:
+      # Add high limit for reflection service
+      serverReflection:
+        baseConfig: default
+        limitForPeriod: 500  # Much higher than service limits
+      scdService:
+        baseConfig: default
+        limitForPeriod: 100
+      jobService:
+        baseConfig: default
+        limitForPeriod: 60
+      paymentLineItemService:
+        baseConfig: default
+        limitForPeriod: 40
+      timelogService:
+        baseConfig: default
+        limitForPeriod: 50
+
+# Actuator configuration to expose rate limiter metrics
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  health:
+    ratelimiters:
+      enabled: true
