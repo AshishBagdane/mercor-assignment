@@ -39,7 +39,7 @@ spring:
     port: ${REDIS_PORT:6379}
     password: ${REDIS_PASSWORD:}  # Leave empty if no password
     timeout: 2000
-    database: mercor-assignment
+    database: 0
 
   # Enable caching explicitly
   cache:
