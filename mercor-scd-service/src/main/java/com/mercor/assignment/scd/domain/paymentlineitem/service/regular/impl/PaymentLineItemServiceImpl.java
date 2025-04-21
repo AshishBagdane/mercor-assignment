@@ -17,6 +17,9 @@ import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -51,6 +54,12 @@ public class PaymentLineItemServiceImpl implements PaymentLineItemService {
   }
 
   @Override
+  @CacheEvict(value = "payment_line_item:latest", key = "#id")
+  @Caching(evict = {
+      @CacheEvict(value = "payment_line_item:latest", key = "#id"),
+      @CacheEvict(value = "payment_line_item:history", key = "#id"),
+      @CacheEvict(value = "payment_line_item:totalForContractor", allEntries = true)
+  })
   public PaymentLineItem markAsPaid(String id) {
     if (!SCDCommonValidators.validId.isValid(id)) {
       throw new ValidationException("Invalid Payment Line Item ID format");
@@ -72,6 +81,8 @@ public class PaymentLineItemServiceImpl implements PaymentLineItemService {
   }
 
   @Override
+  @Cacheable(value = "payment:totalForContractor",
+      key = "#contractorId + ':' + #startTime + ':' + #endTime")
   public BigDecimal getTotalAmountForContractor(String contractorId, Long startTime, Long endTime) {
     List<PaymentLineItem> paymentLineItems = getPaymentLineItemsForContractor(contractorId, startTime, endTime);
     return paymentLineItems.stream()
@@ -80,6 +91,7 @@ public class PaymentLineItemServiceImpl implements PaymentLineItemService {
   }
 
   @Override
+  @Cacheable(value = "payment_line_item:latest", key = "#id", unless = "#result == null")
   public Optional<PaymentLineItem> findLatestVersionById(String id) {
     if (!SCDCommonValidators.validId.isValid(id)) {
       throw new ValidationException("Invalid Payment Line Item ID format");
@@ -89,6 +101,7 @@ public class PaymentLineItemServiceImpl implements PaymentLineItemService {
   }
 
   @Override
+  @Cacheable(value = "payment_line_item:history", key = "#id", unless = "#result == null")
   public List<PaymentLineItem> findAllVersionsById(String id) {
     if (!SCDCommonValidators.validId.isValid(id)) {
       throw new ValidationException("Invalid Payment Line Item ID format");
@@ -106,6 +119,12 @@ public class PaymentLineItemServiceImpl implements PaymentLineItemService {
   }
 
   @Override
+  @CacheEvict(value = "payment_line_item:latest", key = "#id")
+  @Caching(evict = {
+      @CacheEvict(value = "payment_line_item:latest", key = "#id"),
+      @CacheEvict(value = "payment_line_item:history", key = "#id"),
+      @CacheEvict(value = "payment_line_item:totalForContractor", allEntries = true)
+  })
   @Transactional
   public PaymentLineItem createNewVersion(String id, Map<String, Object> fieldsToUpdate) {
     if (!SCDCommonValidators.validId.isValid(id)) {

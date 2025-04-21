@@ -13,6 +13,9 @@ import com.mercor.assignment.scd.domain.timelog.repository.TimelogRepository;
 import com.mercor.assignment.scd.domain.timelog.service.regular.TimelogService;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -61,6 +64,11 @@ public class TimelogServiceImpl implements TimelogService {
     }
 
     @Override
+    @CacheEvict(value = "timelog:latest", key = "#timelogId")
+    @Caching(evict = {
+        @CacheEvict(value = "timelog:latest", key = "#timelogId"),
+        @CacheEvict(value = "timelog:history", key = "#timelogId")
+    })
     @Transactional
     public Timelog adjustTimelog(String timelogId, Long adjustedDuration) {
         if (!SCDCommonValidators.validId.isValid(timelogId)) {
@@ -92,6 +100,7 @@ public class TimelogServiceImpl implements TimelogService {
     }
 
     @Override
+    @Cacheable(value = "timelog:latest", key = "#id", unless = "#result == null")
     public Optional<Timelog> findLatestVersionById(String id) {
         if (!SCDCommonValidators.validId.isValid(id)) {
             throw new ValidationException("Invalid Timelog ID format");
@@ -101,6 +110,7 @@ public class TimelogServiceImpl implements TimelogService {
     }
 
     @Override
+    @Cacheable(value = "timelog:history", key = "#id", unless = "#result == null")
     public List<Timelog> findAllVersionsById(String id) {
         if (!SCDCommonValidators.validId.isValid(id)) {
             throw new ValidationException("Invalid Timelog ID format");
@@ -119,6 +129,11 @@ public class TimelogServiceImpl implements TimelogService {
     }
 
     @Override
+    @CacheEvict(value = "timelog:latest", key = "#timelogId")
+    @Caching(evict = {
+        @CacheEvict(value = "timelog:latest", key = "#timelogId"),
+        @CacheEvict(value = "timelog:history", key = "#timelogId")
+    })
     @Transactional
     public Timelog createNewVersion(String id, Map<String, Object> fieldsToUpdate) {
         if (!SCDCommonValidators.validId.isValid(id)) {
