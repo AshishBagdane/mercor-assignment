@@ -1,0 +1,38 @@
+# Version Control
+.git/
+.gitignore
+
+# Build outputs (except the final jar)
+target/*
+!target/*.jar
+
+# Logs
+logs/
+*.log
+
+# Documentation
+*.md
+README*
+CHANGELOG*
+LICENSE*
+
+# Docker
+docker/
+.dockerignore
+Dockerfile
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test reports
+**/test-results/
+**/coverage/
