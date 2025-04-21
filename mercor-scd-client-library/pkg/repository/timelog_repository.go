@@ -94,7 +94,7 @@ func (r *TimelogRepository) GetTimelogsForJobRemote(ctx context.Context, jobUID 
 func (r *TimelogRepository) GetTimelogHistoryRemote(ctx context.Context, id string) ([]*timelogmodel.Timelog, error) {
 	// Call SCD service to get timelog history
 	resp, err := r.coreClient.GetVersionHistory(ctx, &core.GetVersionHistoryRequest{
-		EntityType: "timelogs",
+		EntityType: "timelog",
 		Id:         id,
 	})
 	if err != nil {

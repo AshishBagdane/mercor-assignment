@@ -180,14 +180,28 @@ if err != nil {
 
 ## Running the Examples
 
-The library includes example applications that demonstrate common SCD operations:
+The library includes example applications that demonstrate common SCD operations. All examples now support command-line arguments for more flexibility.
 
 ### Job Example
 
 ```bash
 # From project root
 cd cmd/examples/job
-go run main.go
+go run main.go -id job_ckbk6oo4hn7pacdgcz9f
+```
+
+**Command Line Arguments:**
+
+- `-id` (required): Job ID to query
+
+**Example Usage:**
+
+```bash
+# Query a specific job
+go run main.go -id job_ckbk6oo4hn7pacdgcz9f
+
+# With help
+go run main.go -h
 ```
 
 This example demonstrates:
@@ -202,7 +216,25 @@ This example demonstrates:
 ```bash
 # From project root
 cd cmd/examples/timelog
-go run main.go
+go run main.go -id tl_AAABk__7Gd2t3TqM-Bdm8kNQ
+```
+
+**Command Line Arguments:**
+
+- `-id` (required): Timelog ID to query
+- `-adjust` (optional): Absolute duration value to set in milliseconds
+
+**Example Usage:**
+
+```bash
+# Just query a timelog
+go run main.go -id tl_AAABk__7Gd2t3TqM-Bdm8kNQ
+
+# Query and adjust duration to 82304 milliseconds
+go run main.go -id tl_AAABk__7Gd2t3TqM-Bdm8kNQ -adjust 82304
+
+# With help
+go run main.go -h
 ```
 
 This example demonstrates:
@@ -217,7 +249,33 @@ This example demonstrates:
 ```bash
 # From project root
 cd cmd/examples/payment
-go run main.go
+go run main.go -id li_EEEFo__1Ln8A0XyQ-FhiprsU
+```
+
+**Command Line Arguments:**
+
+- `-id` (required): Payment Line Item ID to query
+- `-contractor` (optional): Contractor ID for total amount query
+- `-start` (optional): Start time for period queries in RFC3339 format
+- `-end` (optional): End time for period queries in RFC3339 format
+
+**Example Usage:**
+
+```bash
+# Basic payment line item query
+go run main.go -id li_EEEFo__1Ln8A0XyQ-FhiprsU
+
+# With contractor ID
+go run main.go -id li_EEEFo__1Ln8A0XyQ-FhiprsU -contractor cont_e0nhseq682vkoc4d
+
+# With time period (last month)
+go run main.go -id li_EEEFo__1Ln8A0XyQ-FhiprsU -start 2025-03-21T00:00:00Z -end 2025-04-21T00:00:00Z
+
+# Complete example with all parameters
+go run main.go -id li_EEEFo__1Ln8A0XyQ-FhiprsU -contractor cont_e0nhseq682vkoc4d -start 2025-03-21T00:00:00Z -end 2025-04-21T00:00:00Z
+
+# With help
+go run main.go -h
 ```
 
 This example demonstrates:
@@ -225,8 +283,8 @@ This example demonstrates:
 - Fetching an existing payment line item by ID
 - Marking a payment as paid
 - Getting payment line items for a job
-- Retrieving payment version history
-- Calculating total amount for a contractor
+- Retrieving payment line item version history
+- Calculating total amount for a contractor within a specific time period
 
 ## Prerequisites
 

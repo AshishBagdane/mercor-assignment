@@ -3,8 +3,10 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"gorm.io/driver/postgres"
@@ -17,6 +19,18 @@ import (
 )
 
 func main() {
+	// Define command line flags
+	timelogID := flag.String("id", "", "Timelog ID to query (required)")
+	adjustDuration := flag.Int64("adjust", 0, "Absolute duration value to set (in milliseconds, optional)")
+	flag.Parse()
+
+	// Validate required parameters
+	if *timelogID == "" {
+		flag.PrintDefaults()
+		fmt.Println("\nError: Timelog ID is required")
+		os.Exit(1)
+	}
+
 	// Load configuration
 	cfg := config.DefaultConfig()
 
@@ -46,13 +60,10 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// Use existing timelog ID
-	existingTimelogID := "tl_AAABk__7Gd2t3TqM-Bdm8kNQ"
-
 	// Example 1: Get the latest version of the existing timelog
-	fmt.Printf("Getting latest version of timelog with ID %s...\n", existingTimelogID)
+	fmt.Printf("Getting latest version of timelog with ID %s...\n", *timelogID)
 
-	existingTimelog, err := timelogRepo.GetTimelogRemote(ctx, existingTimelogID)
+	existingTimelog, err := timelogRepo.GetTimelogRemote(ctx, *timelogID)
 	if err != nil {
 		log.Fatalf("Failed to get timelog from SCD service: %v", err)
 	}
@@ -61,20 +72,27 @@ func main() {
 		existingTimelog.ID, existingTimelog.Version, existingTimelog.UID,
 		existingTimelog.Duration, existingTimelog.Type)
 
-	// Example 2: Adjust timelog duration through SCD service
-	fmt.Println("\nAdjusting timelog duration through SCD service...")
+	// Example 2: Adjust timelog duration through SCD service if an adjustment was specified
+	if *adjustDuration != 0 {
+		fmt.Println("\nAdjusting timelog duration through SCD service...")
 
-	// Reduce the duration by 10% to simulate an adjustment
-	adjustedDuration := existingTimelog.Duration - (existingTimelog.Duration / 10)
+		// Use the specified absolute duration value
+		adjustedDuration := *adjustDuration
 
-	adjustedTimelog, err := timelogRepo.AdjustTimelogRemote(ctx, existingTimelogID, adjustedDuration)
-	if err != nil {
-		log.Fatalf("Failed to adjust timelog through SCD service: %v", err)
+		fmt.Printf("Adjusting duration from %d to %d ms...\n",
+			existingTimelog.Duration, adjustedDuration)
+
+		adjustedTimelog, err := timelogRepo.AdjustTimelogRemote(ctx, *timelogID, adjustedDuration)
+		if err != nil {
+			log.Fatalf("Failed to adjust timelog through SCD service: %v", err)
+		}
+
+		fmt.Printf("Adjusted timelog: ID=%s, Version=%d, UID=%s, Duration=%d (adjusted from %d)\n",
+			adjustedTimelog.ID, adjustedTimelog.Version, adjustedTimelog.UID,
+			adjustedTimelog.Duration, existingTimelog.Duration)
+	} else {
+		fmt.Println("\nNo duration adjustment specified, skipping adjustment step.")
 	}
-
-	fmt.Printf("Adjusted timelog: ID=%s, Version=%d, UID=%s, Duration=%d (adjusted from %d)\n",
-		adjustedTimelog.ID, adjustedTimelog.Version, adjustedTimelog.UID,
-		adjustedTimelog.Duration, existingTimelog.Duration)
 
 	// Example 3: Get timelogs for the job associated with this timelog
 	fmt.Println("\nGetting timelogs for the associated job...")
@@ -91,12 +109,12 @@ func main() {
 
 	// Example 4: Get timelog version history from SCD service
 	fmt.Println("\nGetting timelog history from SCD service...")
-	timelogHistory, err := timelogRepo.GetTimelogHistoryRemote(ctx, existingTimelogID)
+	timelogHistory, err := timelogRepo.GetTimelogHistoryRemote(ctx, *timelogID)
 	if err != nil {
 		log.Fatalf("Failed to get timelog history: %v", err)
 	}
 
-	fmt.Printf("Timelog history for %s has %d versions:\n", existingTimelogID, len(timelogHistory))
+	fmt.Printf("Timelog history for %s has %d versions:\n", *timelogID, len(timelogHistory))
 	for _, version := range timelogHistory {
 		fmt.Printf("- Version=%d, UID=%s, Type=%s, Duration=%d, Created=%s\n",
 			version.Version, version.UID, version.Type, version.Duration,
