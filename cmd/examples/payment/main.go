@@ -3,8 +3,10 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"gorm.io/driver/postgres"
@@ -17,6 +19,47 @@ import (
 )
 
 func main() {
+	// Define command line flags
+	paymentID := flag.String("id", "", "Payment Line Item ID to query (required)")
+	contractorID := flag.String("contractor", "", "Contractor ID for total amount query (optional)")
+	startTimeStr := flag.String("start", "", "Start time for period queries in RFC3339 format (optional)")
+	endTimeStr := flag.String("end", "", "End time for period queries in RFC3339 format (optional)")
+
+	flag.Parse()
+
+	// Validate required parameters
+	if *paymentID == "" {
+		flag.PrintDefaults()
+		fmt.Println("\nError: Payment Line Item ID is required")
+		os.Exit(1)
+	}
+
+	// Parse time parameters if provided
+	var startTime, endTime int64
+	if *startTimeStr != "" {
+		t, err := time.Parse(time.RFC3339, *startTimeStr)
+		if err != nil {
+			fmt.Printf("Invalid start time format: %v\n", err)
+			os.Exit(1)
+		}
+		startTime = t.UnixNano() / 1000000
+	} else {
+		// Default to 1 month ago
+		startTime = time.Now().AddDate(0, -1, 0).UnixNano() / 1000000
+	}
+
+	if *endTimeStr != "" {
+		t, err := time.Parse(time.RFC3339, *endTimeStr)
+		if err != nil {
+			fmt.Printf("Invalid end time format: %v\n", err)
+			os.Exit(1)
+		}
+		endTime = t.UnixNano() / 1000000
+	} else {
+		// Default to now
+		endTime = time.Now().UnixNano() / 1000000
+	}
+
 	// Load configuration
 	cfg := config.DefaultConfig()
 
@@ -46,13 +89,10 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// Use existing payment line item ID
-	existingPaymentID := "li_EEEFo__1Ln8A0XyQ-FhiprsU"
-
 	// Example 1: Get the latest version of the existing payment line item
-	fmt.Printf("Getting latest version of payment line item with ID %s...\n", existingPaymentID)
+	fmt.Printf("Getting latest version of payment line item with ID %s...\n", *paymentID)
 
-	existingPayment, err := paymentRepo.GetPaymentLineItemRemote(ctx, existingPaymentID)
+	existingPayment, err := paymentRepo.GetPaymentLineItemRemote(ctx, *paymentID)
 	if err != nil {
 		log.Fatalf("Failed to get payment line item from SCD service: %v", err)
 	}
@@ -65,7 +105,7 @@ func main() {
 	if existingPayment.Status != "paid" {
 		fmt.Println("\nMarking payment as paid through SCD service...")
 
-		paidPayment, err := paymentRepo.MarkAsPaidRemote(ctx, existingPaymentID)
+		paidPayment, err := paymentRepo.MarkAsPaidRemote(ctx, *paymentID)
 		if err != nil {
 			log.Fatalf("Failed to mark payment as paid through SCD service: %v", err)
 		}
@@ -92,12 +132,12 @@ func main() {
 
 	// Example 4: Get payment line item version history from SCD service
 	fmt.Println("\nGetting payment history from SCD service...")
-	paymentHistory, err := paymentRepo.GetPaymentHistoryRemote(ctx, existingPaymentID)
+	paymentHistory, err := paymentRepo.GetPaymentHistoryRemote(ctx, *paymentID)
 	if err != nil {
 		log.Fatalf("Failed to get payment history: %v", err)
 	}
 
-	fmt.Printf("Payment history for %s has %d versions:\n", existingPaymentID, len(paymentHistory))
+	fmt.Printf("Payment history for %s has %d versions:\n", *paymentID, len(paymentHistory))
 	for _, version := range paymentHistory {
 		fmt.Printf("- Version=%d, UID=%s, Status=%s, Amount=%.2f, Created=%s\n",
 			version.Version, version.UID, version.Status, version.Amount,
@@ -105,18 +145,24 @@ func main() {
 	}
 
 	// Example 5: Get total amount for the contractor
-	// Extract contractor ID from the job associated with the payment
-	// This is a placeholder - in a real implementation, you'd get the contractor ID from the job
-	contractorID := "cont_example456"
-	startTime := time.Now().AddDate(0, -1, 0).UnixNano() / 1000000 // 1 month ago
-	endTime := time.Now().UnixNano() / 1000000                     // now
+	// Use provided contractor ID or extract from the job if not provided
+	usedContractorID := *contractorID
+	if usedContractorID == "" {
+		// In a real implementation, you'd get the contractor ID from the job
+		// This is just a placeholder
+		usedContractorID = "cont_example456"
+		fmt.Println("\nNo contractor ID provided, using default example ID.")
+	}
 
-	fmt.Printf("\nGetting total amount for contractor %s...\n", contractorID)
-	totalAmount, err := paymentRepo.GetTotalAmountForContractorRemote(ctx, contractorID, startTime, endTime)
+	fmt.Printf("\nGetting total amount for contractor %s...\n", usedContractorID)
+	totalAmount, err := paymentRepo.GetTotalAmountForContractorRemote(ctx, usedContractorID, startTime, endTime)
 	if err != nil {
 		log.Fatalf("Failed to get total amount: %v", err)
 	}
 
-	fmt.Printf("Total amount for contractor %s in the last month: $%.2f\n",
-		contractorID, totalAmount)
+	startTimeFormatted := time.Unix(0, startTime*1000000).Format(time.RFC3339)
+	endTimeFormatted := time.Unix(0, endTime*1000000).Format(time.RFC3339)
+
+	fmt.Printf("Total amount for contractor %s from %s to %s: $%.2f\n",
+		usedContractorID, startTimeFormatted, endTimeFormatted, totalAmount)
 }

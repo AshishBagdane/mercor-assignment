@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"gorm.io/driver/postgres"
@@ -16,6 +18,17 @@ import (
 )
 
 func main() {
+	// Define command line flags
+	jobID := flag.String("id", "", "Job ID to query (required)")
+	flag.Parse()
+
+	// Validate required parameters
+	if *jobID == "" {
+		flag.PrintDefaults()
+		fmt.Println("\nError: Job ID is required")
+		os.Exit(1)
+	}
+
 	// Load configuration
 	cfg := config.DefaultConfig()
 
@@ -45,13 +58,10 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
 	defer cancel()
 
-	// Use existing job ID
-	existingJobID := "job_ckbk6oo4hn7pacdgcz9f"
-
 	// Example 1: Get the latest version of the existing job
-	fmt.Printf("Getting latest version of job with ID %s...\n", existingJobID)
+	fmt.Printf("Getting latest version of job with ID %s...\n", *jobID)
 
-	existingJob, err := jobRepo.GetJobRemote(ctx, existingJobID)
+	existingJob, err := jobRepo.GetJobRemote(ctx, *jobID)
 	if err != nil {
 		log.Fatalf("Failed to get job from SCD service: %v", err)
 	}
@@ -69,7 +79,7 @@ func main() {
 		newStatus = "extended"
 	}
 
-	updatedJob, err := jobRepo.UpdateJobStatusRemote(ctx, existingJobID, newStatus)
+	updatedJob, err := jobRepo.UpdateJobStatusRemote(ctx, *jobID, newStatus)
 	if err != nil {
 		log.Fatalf("Failed to update job status through SCD service: %v", err)
 	}
@@ -93,12 +103,12 @@ func main() {
 
 	// Example 4: Get job version history from SCD service
 	fmt.Println("\nGetting job history from SCD service...")
-	jobHistory, err := jobRepo.GetJobHistoryRemote(ctx, existingJobID)
+	jobHistory, err := jobRepo.GetJobHistoryRemote(ctx, *jobID)
 	if err != nil {
 		log.Fatalf("Failed to get job history: %v", err)
 	}
 
-	fmt.Printf("Job history for %s has %d versions:\n", existingJobID, len(jobHistory))
+	fmt.Printf("Job history for %s has %d versions:\n", *jobID, len(jobHistory))
 	for _, version := range jobHistory {
 		fmt.Printf("- Version=%d, UID=%s, Status=%s, Created=%s\n",
 			version.Version, version.UID, version.Status,
