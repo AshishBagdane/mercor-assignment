@@ -61,6 +61,7 @@ public class PaymentLineItemServiceImpl implements PaymentLineItemService {
       @CacheEvict(value = "payment_line_item:history", key = "#id"),
       @CacheEvict(value = "payment_line_item:totalForContractor", allEntries = true)
   })
+  @Transactional
   public PaymentLineItem markAsPaid(String id) {
     if (!SCDCommonValidators.validId.isValid(id)) {
       throw new ValidationException("Invalid Payment Line Item ID format");
