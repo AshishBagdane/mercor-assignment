@@ -1,6 +1,7 @@
 package com.mercor.assignment.scd.domain.paymentlineitem.mapper;
 
 import com.mercor.assignment.scd.domain.paymentlineitem.model.PaymentLineItem;
+import com.mercor.assignment.scd.domain.paymentlineitems.CreatePaymentLineItemRequest;
 import com.mercor.assignment.scd.domain.paymentlineitems.PaymentLineItemProto;
 import com.mercor.assignment.scd.domain.paymentlineitems.PaymentLineItemResponse;
 import com.mercor.assignment.scd.domain.paymentlineitems.PaymentLineItemListResponse;
@@ -67,6 +68,23 @@ public interface PaymentLineItemMapper {
     @Mapping(source = "updatedAt", target = "updatedAt", qualifiedByName = "longToDate")
     @Mapping(source = "amount", target = "amount", qualifiedByName = "doubleToDecimal")
     PaymentLineItem toEntity(PaymentLineItemProto proto);
+
+    /**
+     * Maps a CreatePaymentLineItemRequest to a PaymentLineItem entity
+     *
+     * @param request the CreatePaymentLineItemRequest
+     * @return the PaymentLineItem entity
+     */
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "version", ignore = true)
+    @Mapping(target = "uid", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(source = "status", target = "status")
+    @Mapping(source = "amount", target = "amount", qualifiedByName = "doubleToDecimal")
+    @Mapping(source = "jobUid", target = "jobUid")
+    @Mapping(source = "timelogUid", target = "timelogUid")
+    PaymentLineItem toEntity(CreatePaymentLineItemRequest request);
 
     /**
      * Converts a java.util.Date to a long timestamp
