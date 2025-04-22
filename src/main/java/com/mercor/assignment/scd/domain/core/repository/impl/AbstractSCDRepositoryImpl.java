@@ -124,6 +124,12 @@ public abstract class AbstractSCDRepositoryImpl<T extends SCDEntity> implements 
     }
 
     @Override
+    public T createEntity(final T entity) {
+        // TODO: Provide Implementation
+        return null;
+    }
+
+    @Override
     public List<T> findLatestVersionsByCriteria(Map<String, Object> criteria) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<T> query = cb.createQuery(entityClass);
