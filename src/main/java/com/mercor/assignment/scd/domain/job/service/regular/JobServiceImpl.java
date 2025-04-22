@@ -1,6 +1,5 @@
 package com.mercor.assignment.scd.domain.job.service.regular;
 
-import com.mercor.assignment.scd.common.errorhandling.exceptions.EntityNotFoundException;
 import com.mercor.assignment.scd.common.errorhandling.exceptions.ValidationException;
 import com.mercor.assignment.scd.domain.core.constants.ServiceName;
 import com.mercor.assignment.scd.domain.core.enums.EntityType;
@@ -10,18 +9,14 @@ import com.mercor.assignment.scd.domain.core.validation.SCDValidators;
 import com.mercor.assignment.scd.domain.job.model.Job;
 import com.mercor.assignment.scd.domain.job.repository.JobRepository;
 import com.mercor.assignment.scd.domain.job.service.JobService;
-import lombok.AllArgsConstructor;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

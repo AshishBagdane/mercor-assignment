@@ -12,6 +12,7 @@ option go_package = "github.com/mercor/assignment/scd/domain/job";
 
 // Job-specific service
 service JobService {
+  rpc CreateNewJob (CreateNewJobRequest) returns (JobResponse);
   rpc GetActiveJobsForCompany (GetActiveJobsForCompanyRequest) returns (JobListResponse);
   rpc GetActiveJobsForContractor (GetActiveJobsForContractorRequest) returns (JobListResponse);
   rpc GetJobsWithRateAbove (GetJobsWithRateAboveRequest) returns (JobListResponse);

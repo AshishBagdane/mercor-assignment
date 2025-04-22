@@ -67,27 +67,6 @@ public abstract class AbstractSCDServiceImpl<T extends SCDEntity, R extends SCDR
     @Override
     @Transactional
     public T createEntity(T entity) {
-        validateEntity(entity);
-        // Generate a new entity ID if not set
-        if (entity.getId() == null || entity.getId().isEmpty()) {
-            entity.setId(uidGenerator.generateEntityId(entityType.getPrefix()));
-        }
-
-        // Set initial version
-        entity.setVersion(1);
-
-        // Generate UID for this version
-        entity.setUid(uidGenerator.generateUid(entityType.getPrefix()));
-
-        // Set timestamps
-        final Date now = new Date();
-        entity.setCreatedAt(now);
-        entity.setUpdatedAt(now);
-
-        // Validate entity before saving
-        validateEntity(entity);
-
-        // Save the entity
         return repository.createEntity(entity);
     }
 

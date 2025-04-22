@@ -125,8 +125,24 @@ public abstract class AbstractSCDRepositoryImpl<T extends SCDEntity> implements 
 
     @Override
     public T createEntity(final T entity) {
-        // TODO: Provide Implementation
-        return null;
+        if (entity.getId() == null || entity.getId().isEmpty()) {
+            entity.setId(uidGenerator.generateEntityId(entityTypeName));
+        }
+
+        // Set initial version
+        entity.setVersion(1);
+
+        // Generate UID for this version
+        entity.setUid(uidGenerator.generateUid(entityTypeName));
+
+        // Set timestamps
+        final Date now = new Date();
+        entity.setCreatedAt(now);
+        entity.setUpdatedAt(now);
+
+        T instance = entityManager.merge(entity);
+        entityManager.flush(); // Force immediate persistence
+        return instance;
     }
 
     @Override
