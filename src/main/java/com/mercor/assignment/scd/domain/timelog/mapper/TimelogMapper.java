@@ -1,5 +1,8 @@
 package com.mercor.assignment.scd.domain.timelog.mapper;
 
+import com.mercor.assignment.scd.domain.paymentlineitem.model.PaymentLineItem;
+import com.mercor.assignment.scd.domain.paymentlineitems.CreatePaymentLineItemRequest;
+import com.mercor.assignment.scd.domain.timelog.CreateNewTimelogForJobRequest;
 import com.mercor.assignment.scd.domain.timelog.TimelogProto;
 import com.mercor.assignment.scd.domain.timelog.AdjustTimelogRequest;
 import com.mercor.assignment.scd.domain.timelog.TimelogResponse;
@@ -44,6 +47,24 @@ public interface TimelogMapper {
     Timelog toEntity(TimelogProto proto);
 
     /**
+     * Maps a CreateNewTimelogForJobRequest to a Timelog entity
+     *
+     * @param request the CreateNewTimelogForJobRequest
+     * @return the Timelog entity
+     */
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "version", ignore = true)
+    @Mapping(target = "uid", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(source = "type", target = "type")
+    @Mapping(source = "duration", target = "duration")
+    @Mapping(source = "startTime", target = "timeStart")
+    @Mapping(source = "endTime", target = "timeEnd")
+    @Mapping(source = "jobUid", target = "jobUid")
+    Timelog toEntity(CreateNewTimelogForJobRequest request);
+
+    /**
      * Maps a list of Timelog entities to a TimelogListResponse
      *
      * @param entities The list of Timelog entities to map
@@ -53,7 +74,7 @@ public interface TimelogMapper {
         if (entities == null) {
             return TimelogListResponse.newBuilder().build();
         }
-        
+
         TimelogListResponse.Builder builder = TimelogListResponse.newBuilder();
         entities.forEach(entity -> builder.addTimelogs(toProto(entity)));
         return builder.build();
@@ -69,7 +90,7 @@ public interface TimelogMapper {
         if (entity == null) {
             return TimelogResponse.newBuilder().build();
         }
-        
+
         return TimelogResponse.newBuilder()
                 .setTimelog(toProto(entity))
                 .build();

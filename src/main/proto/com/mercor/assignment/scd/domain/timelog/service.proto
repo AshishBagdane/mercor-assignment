@@ -12,6 +12,7 @@ option go_package = "github.com/mercor/assignment/scd/domain/timelog";
 
 // Timelog-specific service
 service TimelogService {
+  rpc CreateNewTimelogForJob (CreateNewTimelogForJobRequest) returns (TimelogResponse);
   rpc GetTimelogsForJob (GetTimelogsForJobRequest) returns (TimelogListResponse);
   rpc GetTimelogsForContractor (GetTimelogsForContractorRequest) returns (TimelogListResponse);
   rpc GetTimelogsWithDurationAbove (GetTimelogsWithDurationAboveRequest) returns (TimelogListResponse);
