@@ -32,7 +32,7 @@ public class SCDValidators {
             .and(value -> value.contains("_uid_"));
 
         // Version validators
-        public static Validators.Validator<Integer> validVersion = value -> value != null && value > 0;
+        public static final Validators.Validator<Integer> validVersion = value -> value != null && value > 0;
     }
 
     /**
@@ -63,7 +63,7 @@ public class SCDValidators {
             .and(value -> value.startsWith("cont_"));
 
         // Complete Job validator
-        public static Validators.Validator<Job> validJob = job -> {
+        public static final Validators.Validator<Job> validJob = job -> {
             if (job == null) return false;
 
             return SCDCommonValidators.validId.isValid(job.getId()) &&
@@ -74,6 +74,17 @@ public class SCDValidators {
                    validTitle.isValid(job.getTitle()) &&
                    validCompanyId.isValid(job.getCompanyId()) &&
                    validContractorId.isValid(job.getContractorId());
+        };
+
+        // Complete New Job validator
+        public static final Validators.Validator<Job> validNewJob = job -> {
+            if (job == null) return false;
+
+            return validStatus.isValid(job.getStatus()) &&
+                validRate.isValid(job.getRate()) &&
+                validTitle.isValid(job.getTitle()) &&
+                validCompanyId.isValid(job.getCompanyId()) &&
+                validContractorId.isValid(job.getContractorId());
         };
     }
 
@@ -108,7 +119,7 @@ public class SCDValidators {
             .and(value -> value.startsWith("job_uid_"));
 
         // Complete Timelog validator
-        public static Validators.Validator<Timelog> validTimelog = timelog -> {
+        public static final Validators.Validator<Timelog> validTimelog = timelog -> {
             if (timelog == null) return false;
 
             return SCDCommonValidators.validId.isValid(timelog.getId()) &&
@@ -120,6 +131,18 @@ public class SCDValidators {
                    validTimeRange.isValid(timelog) &&
                    validType.isValid(timelog.getType()) &&
                    validJobUid.isValid(timelog.getJobUid());
+        };
+
+        // Complete New Timelog validator
+        public static final Validators.Validator<Timelog> validNewTimelog = timelog -> {
+            if (timelog == null) return false;
+
+            return validDuration.isValid(timelog.getDuration()) &&
+                validTimestamp.isValid(timelog.getTimeStart()) &&
+                validTimestamp.isValid(timelog.getTimeEnd()) &&
+                validTimeRange.isValid(timelog) &&
+                validType.isValid(timelog.getType()) &&
+                validJobUid.isValid(timelog.getJobUid());
         };
     }
 
@@ -145,7 +168,7 @@ public class SCDValidators {
             .and(value -> value.startsWith("tl_uid_"));
 
         // Complete PaymentLineItem validator
-        public static Validators.Validator<PaymentLineItem> validPaymentLineItem = item -> {
+        public static final Validators.Validator<PaymentLineItem> validPaymentLineItem = item -> {
             if (item == null) return false;
 
             return SCDCommonValidators.validId.isValid(item.getId()) &&
@@ -156,6 +179,16 @@ public class SCDValidators {
                    validAmount.isValid(item.getAmount()) &&
                    validStatus.isValid(item.getStatus());
         };
+
+        // Complete PaymentLineItem validator
+        public static final Validators.Validator<PaymentLineItem> validNewPaymentLineItem = item -> {
+            if (item == null) return false;
+
+            return validJobUid.isValid(item.getJobUid()) &&
+                validTimelogUid.isValid(item.getTimelogUid()) &&
+                validAmount.isValid(item.getAmount()) &&
+                validStatus.isValid(item.getStatus());
+        };
     }
 
     /**
@@ -164,7 +197,7 @@ public class SCDValidators {
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
     public static class BusinessRuleValidators {
         // Validate that a payment line item refers to the latest version of a job
-        public static Validators.Validator<PaymentLineItem> refersToLatestJobVersion =
+        public static final Validators.Validator<PaymentLineItem> refersToLatestJobVersion =
             (paymentLineItem) -> {
                 if (paymentLineItem == null || paymentLineItem.getJob() == null) {
                     return false;
@@ -176,7 +209,7 @@ public class SCDValidators {
             };
 
         // Validate that the payment amount matches the job rate and timelog duration
-        public static Validators.Validator<PaymentLineItem> amountMatchesRateAndDuration =
+        public static final Validators.Validator<PaymentLineItem> amountMatchesRateAndDuration =
             (paymentLineItem) -> {
                 if (paymentLineItem == null ||
                     paymentLineItem.getJob() == null ||

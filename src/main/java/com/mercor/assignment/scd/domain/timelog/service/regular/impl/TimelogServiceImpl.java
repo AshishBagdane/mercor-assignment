@@ -8,6 +8,7 @@ import com.mercor.assignment.scd.domain.core.service.regular.AbstractSCDServiceI
 import com.mercor.assignment.scd.domain.core.util.UidGenerator;
 import com.mercor.assignment.scd.domain.core.validation.SCDValidators;
 import com.mercor.assignment.scd.domain.core.validation.SCDValidators.SCDCommonValidators;
+import com.mercor.assignment.scd.domain.core.validation.SCDValidators.TimelogValidators;
 import com.mercor.assignment.scd.domain.job.model.Job;
 import com.mercor.assignment.scd.domain.job.repository.JobRepository;
 import com.mercor.assignment.scd.domain.job.service.JobService;
@@ -142,6 +143,9 @@ public class TimelogServiceImpl extends AbstractSCDServiceImpl<Timelog, TimelogR
     @Override
     @Transactional
     public Timelog createEntity(Timelog entity) {
+        if (!TimelogValidators.validNewTimelog.isValid(entity)) {
+            throw new ValidationException("Invalid timelog entity");
+        }
         return super.createEntity(entity);
     }
 

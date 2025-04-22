@@ -8,6 +8,7 @@ import com.mercor.assignment.scd.domain.core.service.regular.AbstractSCDServiceI
 import com.mercor.assignment.scd.domain.core.util.UidGenerator;
 import com.mercor.assignment.scd.domain.core.validation.SCDValidators.PaymentLineItemValidators;
 import com.mercor.assignment.scd.domain.core.validation.SCDValidators.SCDCommonValidators;
+import com.mercor.assignment.scd.domain.core.validation.SCDValidators.TimelogValidators;
 import com.mercor.assignment.scd.domain.paymentlineitem.enums.PaymentLineItemStatus;
 import com.mercor.assignment.scd.domain.paymentlineitem.model.PaymentLineItem;
 import com.mercor.assignment.scd.domain.paymentlineitem.repository.PaymentLineItemRepository;
@@ -140,6 +141,9 @@ public class PaymentLineItemServiceImpl extends AbstractSCDServiceImpl<PaymentLi
     })
     @Transactional
     public PaymentLineItem createEntity(PaymentLineItem entity) {
+        if (!PaymentLineItemValidators.validNewPaymentLineItem.isValid(entity)) {
+            throw new ValidationException("Invalid payment line item entity");
+        }
         return super.createEntity(entity);
     }
 

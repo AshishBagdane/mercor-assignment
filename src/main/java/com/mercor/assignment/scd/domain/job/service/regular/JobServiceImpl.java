@@ -6,6 +6,7 @@ import com.mercor.assignment.scd.domain.core.enums.EntityType;
 import com.mercor.assignment.scd.domain.core.service.regular.AbstractSCDServiceImpl;
 import com.mercor.assignment.scd.domain.core.util.UidGenerator;
 import com.mercor.assignment.scd.domain.core.validation.SCDValidators;
+import com.mercor.assignment.scd.domain.core.validation.SCDValidators.JobValidators;
 import com.mercor.assignment.scd.domain.job.model.Job;
 import com.mercor.assignment.scd.domain.job.repository.JobRepository;
 import com.mercor.assignment.scd.domain.job.service.JobService;
@@ -75,6 +76,9 @@ public class JobServiceImpl extends AbstractSCDServiceImpl<Job, JobRepository> i
     })
     @Transactional
     public Job createEntity(Job entity) {
+        if (!JobValidators.validNewJob.isValid(entity)) {
+            throw new ValidationException("Invalid job entity");
+        }
         return super.createEntity(entity);
     }
 
