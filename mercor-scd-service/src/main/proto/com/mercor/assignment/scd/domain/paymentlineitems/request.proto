@@ -31,3 +31,10 @@ message GetTotalAmountForContractorRequest {
   int64 start_time = 2;
   int64 end_time = 3;
 }
+
+message CreatePaymentLineItemRequest {
+  string job_uid = 1;
+  string timelog_uid = 2;
+  double amount = 3;
+  string status = 4;
+}

@@ -26,3 +26,11 @@ message AdjustTimelogRequest {
   string id = 1;
   int64 adjusted_duration = 2;
 }
+
+message CreateNewTimelogForJobRequest {
+  int64 duration = 1;
+  int64 start_time = 2;
+  int64 end_time = 3;
+  string type = 4;
+  string job_uid = 5;
+}

@@ -12,6 +12,7 @@ option go_package = "github.com/mercor/assignment/scd/domain/paymentlineitems";
 
 // PaymentLineItem-specific service
 service PaymentLineItemService {
+  rpc CreateNewPaymentLineItem (CreatePaymentLineItemRequest) returns (PaymentLineItemResponse);
   rpc GetPaymentLineItemsForJob (GetPaymentLineItemsForJobRequest) returns (PaymentLineItemListResponse);
   rpc GetPaymentLineItemsForTimelog (GetPaymentLineItemsForTimelogRequest) returns (PaymentLineItemListResponse);
   rpc GetPaymentLineItemsForContractor (GetPaymentLineItemsForContractorRequest) returns (PaymentLineItemListResponse);

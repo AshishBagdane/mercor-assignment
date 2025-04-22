@@ -1,0 +1,148 @@
+services:
+  # Add your SCD service
+  mercor-scd-service:
+    image: ${SCD_SERVICE_IMAGE:-docker.io/library/mercor-scd-service:latest}
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILE:-dev}
+      - DB_HOST=${DB_HOST:-postgres}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_NAME=${DB_NAME:-employment}
+      - DB_USERNAME=${DB_USERNAME:-user}
+      - DB_PASSWORD=${DB_PASSWORD:-password}
+      - SPRING_DATA_REDIS_HOST=${REDIS_HOST:-redis-stack}
+      - SPRING_DATA_REDIS_PORT=${REDIS_PORT:-6379}
+      - MANAGEMENT_ENDPOINTS=${MANAGEMENT_ENDPOINTS:-health,metrics,prometheus}
+    ports:
+      - "${HTTP_PORT:-8080}:8080"  # HTTP port
+      - "${GRPC_PORT:-50051}:50051"  # gRPC port
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis-stack:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: ${HEALTHCHECK_INTERVAL:-30s}
+      timeout: ${HEALTHCHECK_TIMEOUT:-10s}
+      retries: ${HEALTHCHECK_RETRIES:-3}
+    restart: unless-stopped
+    networks:
+      - sdc-network
+
+  postgres:
+    image: ${POSTGRES_IMAGE:-postgres:latest}
+    environment:
+      POSTGRES_DB: ${DB_NAME:-employment}
+      POSTGRES_USER: ${DB_USERNAME:-user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-user} -d ${DB_NAME:-employment}"]
+      interval: ${PG_HEALTHCHECK_INTERVAL:-10s}
+      timeout: ${PG_HEALTHCHECK_TIMEOUT:-5s}
+      retries: ${PG_HEALTHCHECK_RETRIES:-5}
+    networks:
+      - sdc-network
+
+  redis-stack:
+    image: ${REDIS_IMAGE:-redis/redis-stack:latest}
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+      - "${REDIS_UI_PORT:-8001}:8001"
+    volumes:
+      - redis_data:/data
+    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: ${REDIS_HEALTHCHECK_INTERVAL:-10s}
+      timeout: ${REDIS_HEALTHCHECK_TIMEOUT:-5s}
+      retries: ${REDIS_HEALTHCHECK_RETRIES:-5}
+    networks:
+      - sdc-network
+
+  # Add Postgres exporter
+  postgres-exporter:
+    image: ${PG_EXPORTER_IMAGE:-prometheuscommunity/postgres-exporter:latest}
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${DB_USERNAME:-user}:${DB_PASSWORD:-password}@${DB_HOST:-postgres}:${DB_PORT:-5432}/${DB_NAME:-employment}?sslmode=disable"
+    ports:
+      - "${PG_EXPORTER_PORT:-9187}:9187"
+    networks:
+      - sdc-network
+    depends_on:
+      - postgres
+
+  # Add Redis exporter
+  redis-exporter:
+    image: ${REDIS_EXPORTER_IMAGE:-oliver006/redis_exporter:latest}
+    environment:
+      REDIS_ADDR: "${REDIS_HOST:-redis-stack}:${REDIS_PORT:-6379}"
+    ports:
+      - "${REDIS_EXPORTER_PORT:-9121}:9121"
+    networks:
+      - sdc-network
+    depends_on:
+      - redis-stack
+
+  prometheus:
+    image: ${PROMETHEUS_IMAGE:-prom/prometheus:latest}
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: ${PROM_HEALTHCHECK_INTERVAL:-10s}
+      timeout: ${PROM_HEALTHCHECK_TIMEOUT:-5s}
+      retries: ${PROM_HEALTHCHECK_RETRIES:-3}
+    networks:
+      - sdc-network
+    depends_on:
+      - postgres-exporter
+      - redis-exporter
+    # Add this for Linux hosts
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  grafana:
+    image: ${GRAFANA_IMAGE:-grafana/grafana:latest}
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=${GRAFANA_ALLOW_SIGNUP:-false}
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: ${GRAFANA_HEALTHCHECK_INTERVAL:-10s}
+      timeout: ${GRAFANA_HEALTHCHECK_TIMEOUT:-5s}
+      retries: ${GRAFANA_HEALTHCHECK_RETRIES:-3}
+    networks:
+      - sdc-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  sdc-network:
+    driver: bridge

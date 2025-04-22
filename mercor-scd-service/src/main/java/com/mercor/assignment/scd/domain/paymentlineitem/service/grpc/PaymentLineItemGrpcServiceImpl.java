@@ -3,6 +3,7 @@ package com.mercor.assignment.scd.domain.paymentlineitem.service.grpc;
 import com.mercor.assignment.scd.domain.paymentlineitem.mapper.PaymentLineItemMapper;
 import com.mercor.assignment.scd.domain.paymentlineitem.model.PaymentLineItem;
 import com.mercor.assignment.scd.domain.paymentlineitem.service.regular.PaymentLineItemService;
+import com.mercor.assignment.scd.domain.paymentlineitems.CreatePaymentLineItemRequest;
 import com.mercor.assignment.scd.domain.paymentlineitems.GetPaymentLineItemsForContractorRequest;
 import com.mercor.assignment.scd.domain.paymentlineitems.GetPaymentLineItemsForJobRequest;
 import com.mercor.assignment.scd.domain.paymentlineitems.GetPaymentLineItemsForTimelogRequest;
@@ -27,7 +28,18 @@ public class PaymentLineItemGrpcServiceImpl extends PaymentLineItemServiceGrpc.P
   private final PaymentLineItemService paymentLineItemService;
   private final PaymentLineItemMapper paymentLineItemMapper;
 
-  @Override
+    @Override
+    public void createNewPaymentLineItem(final CreatePaymentLineItemRequest request,
+                                         final StreamObserver<PaymentLineItemResponse> responseObserver) {
+        final PaymentLineItem paymentLineItem = paymentLineItemMapper.toEntity(request);
+
+        final PaymentLineItemResponse response = paymentLineItemMapper.toResponse(paymentLineItemService.createEntity(paymentLineItem));
+
+        responseObserver.onNext(response);
+        responseObserver.onCompleted();
+    }
+
+    @Override
   public void getPaymentLineItemsForJob(GetPaymentLineItemsForJobRequest request, StreamObserver<PaymentLineItemListResponse> responseObserver) {
     final List<PaymentLineItem> paymentLineItems = paymentLineItemService.getPaymentLineItemsForJob(request.getJobUid());
 

@@ -48,6 +48,14 @@ public interface SCDRepositoryBase<T extends SCDEntity> {
     T createNewVersion(T latestVersion, Map<String, Object> fieldsToUpdate);
 
     /**
+     * Create a fresh entity with new fields
+     *
+     * @param entity map of field names to new values
+     * @return the newly created version
+     */
+    T createEntity(T entity);
+
+    /**
      * Find latest versions of entities matching specified criteria
      *
      * @param criteria map of field names to values for filtering

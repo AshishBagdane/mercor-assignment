@@ -29,3 +29,11 @@ message UpdateJobRateRequest {
   string id = 1;
   double rate = 2;
 }
+
+message CreateNewJobRequest {
+  double rate = 1;
+  string title = 2;
+  string company_id = 3;
+  string contractor_id = 4;
+  string status = 5;
+}
