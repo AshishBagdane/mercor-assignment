@@ -4,13 +4,17 @@ import com.mercor.assignment.scd.common.errorhandling.exceptions.EntityNotFoundE
 import com.mercor.assignment.scd.common.errorhandling.exceptions.ValidationException;
 import com.mercor.assignment.scd.domain.core.constants.ServiceName;
 import com.mercor.assignment.scd.domain.core.enums.EntityType;
+import com.mercor.assignment.scd.domain.core.service.regular.AbstractSCDServiceImpl;
 import com.mercor.assignment.scd.domain.core.util.UidGenerator;
 import com.mercor.assignment.scd.domain.core.validation.SCDValidators;
 import com.mercor.assignment.scd.domain.job.model.Job;
 import com.mercor.assignment.scd.domain.job.repository.JobRepository;
 import com.mercor.assignment.scd.domain.job.service.JobService;
+import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
@@ -28,37 +32,32 @@ import java.util.Optional;
  * Uses the JobRepository for SCD operations
  */
 @Service(ServiceName.JOB_SERVICE)
-@RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class JobServiceImpl implements JobService {
+public class JobServiceImpl extends AbstractSCDServiceImpl<Job, JobRepository> implements JobService {
 
     private final JobRepository jobRepository;
-    private final UidGenerator uidGenerator;
+
+    @Autowired
+    public JobServiceImpl(final JobRepository jobRepository, final UidGenerator uidGenerator) {
+        super(jobRepository, uidGenerator, EntityType.JOBS);
+        this.jobRepository = jobRepository;
+    }
 
     @Override
     @Cacheable(value = "job:latest", key = "#id", unless = "#result == null")
     public Optional<Job> findLatestVersionById(String id) {
-        if (!SCDValidators.SCDCommonValidators.validId.isValid(id)) {
-            throw new ValidationException("Invalid job ID format");
-        }
-        return jobRepository.findLatestVersionById(id);
+        return super.findLatestVersionById(id);
     }
 
     @Override
     @Cacheable(value = "job:history", key = "#id", unless = "#result == null")
     public List<Job> findAllVersionsById(String id) {
-        if (!SCDValidators.SCDCommonValidators.validId.isValid(id)) {
-            throw new ValidationException("Invalid job ID format");
-        }
-        return jobRepository.findAllVersionsById(id);
+        return super.findAllVersionsById(id);
     }
 
     @Override
     public Optional<Job> findByUid(String uid) {
-        if (!SCDValidators.SCDCommonValidators.validUid.isValid(uid)) {
-            throw new ValidationException("Invalid job UID format");
-        }
-        return jobRepository.findByUid(uid);
+        return super.findByUid(uid);
     }
 
     @Override
@@ -71,46 +70,29 @@ public class JobServiceImpl implements JobService {
     })
     @Transactional
     public Job createNewVersion(String id, Map<String, Object> fieldsToUpdate) {
-        if (!SCDValidators.SCDCommonValidators.validId.isValid(id)) {
-            throw new ValidationException("Invalid job ID format");
-        }
-
-        Optional<Job> latestVersionOpt = jobRepository.findLatestVersionById(id);
-
-        if (latestVersionOpt.isEmpty()) {
-            throw new EntityNotFoundException("Job with ID " + id + " not found");
-        }
-
-        final Job latestVersion = latestVersionOpt.get();
-        return jobRepository.createNewVersion(latestVersion, fieldsToUpdate);
+        return super.createNewVersion(id, fieldsToUpdate);
     }
 
     @Override
+    @Caching(evict = {
+        @CacheEvict(value = "job:activeByCompany", allEntries = true),
+        @CacheEvict(value = "job:activeByContractor", allEntries = true)
+    })
     @Transactional
     public Job createEntity(Job entity) {
-        // Generate a new entity ID if not set
-        if (entity.getId() == null || entity.getId().isEmpty()) {
-            entity.setId(uidGenerator.generateEntityId(EntityType.JOBS.getPrefix()));
-        }
-
-        // Set initial version
-        entity.setVersion(1);
-
-        // Generate UID for this version
-        entity.setUid(uidGenerator.generateUid(EntityType.JOBS.getPrefix()));
-
-        // Set timestamps
-        final Date now = new Date();
-        entity.setCreatedAt(now);
-        entity.setUpdatedAt(now);
-
-        // Explicitly use SCDRepositoryBase.save
-        return jobRepository.save(entity);
+        return super.createEntity(entity);
     }
 
     @Override
     public List<Job> findLatestVersionsByCriteria(Map<String, Object> criteria) {
-        return jobRepository.findLatestVersionsByCriteria(criteria);
+        return super.findLatestVersionsByCriteria(criteria);
+    }
+
+    @Override
+    protected void validateEntity(final Job entity) {
+        if (!SCDValidators.JobValidators.validJob.isValid(entity)) {
+            throw new ValidationException("Invalid job entity");
+        }
     }
 
     @Override
