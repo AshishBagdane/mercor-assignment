@@ -1,6 +1,7 @@
 package com.mercor.assignment.scd.domain.timelog.service.grpc;
 
 import com.mercor.assignment.scd.domain.timelog.AdjustTimelogRequest;
+import com.mercor.assignment.scd.domain.timelog.CreateNewTimelogForJobRequest;
 import com.mercor.assignment.scd.domain.timelog.GetTimelogsForContractorRequest;
 import com.mercor.assignment.scd.domain.timelog.GetTimelogsForJobRequest;
 import com.mercor.assignment.scd.domain.timelog.GetTimelogsWithDurationAboveRequest;
@@ -24,7 +25,18 @@ public class TimelogGrpcServiceImpl extends TimelogServiceGrpc.TimelogServiceImp
   private final TimelogService timelogService;
   private final TimelogMapper timelogMapper;
 
-  @Override
+    @Override
+    public void createNewTimelogForJob(final CreateNewTimelogForJobRequest request,
+                                       final StreamObserver<TimelogResponse> responseObserver) {
+        final Timelog timelog = timelogMapper.toEntity(request);
+
+        final TimelogResponse response = timelogMapper.toTimelogResponse(timelogService.createEntity(timelog));
+
+        responseObserver.onNext(response);
+        responseObserver.onCompleted();
+    }
+
+    @Override
   public void getTimelogsForJob(GetTimelogsForJobRequest request, StreamObserver<TimelogListResponse> responseObserver) {
     final List<Timelog> timelogs = timelogService.findTimelogsForJob(request.getJobUid());
 

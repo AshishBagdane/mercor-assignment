@@ -4,9 +4,13 @@ import com.mercor.assignment.scd.common.errorhandling.exceptions.EntityNotFoundE
 import com.mercor.assignment.scd.common.errorhandling.exceptions.ValidationException;
 import com.mercor.assignment.scd.domain.core.constants.ServiceName;
 import com.mercor.assignment.scd.domain.core.enums.EntityType;
+import com.mercor.assignment.scd.domain.core.service.regular.AbstractSCDServiceImpl;
 import com.mercor.assignment.scd.domain.core.util.UidGenerator;
+import com.mercor.assignment.scd.domain.core.validation.SCDValidators;
 import com.mercor.assignment.scd.domain.core.validation.SCDValidators.SCDCommonValidators;
+import com.mercor.assignment.scd.domain.core.validation.SCDValidators.TimelogValidators;
 import com.mercor.assignment.scd.domain.job.model.Job;
+import com.mercor.assignment.scd.domain.job.repository.JobRepository;
 import com.mercor.assignment.scd.domain.job.service.JobService;
 import com.mercor.assignment.scd.domain.timelog.enums.TimelogType;
 import com.mercor.assignment.scd.domain.timelog.model.Timelog;
@@ -14,6 +18,7 @@ import com.mercor.assignment.scd.domain.timelog.repository.TimelogRepository;
 import com.mercor.assignment.scd.domain.timelog.service.regular.TimelogService;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
@@ -29,13 +34,18 @@ import java.util.Map;
  * Implementation of the Timelog service
  */
 @Service(ServiceName.TIMELOG_SERVICE)
-@RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class TimelogServiceImpl implements TimelogService {
+public class TimelogServiceImpl extends AbstractSCDServiceImpl<Timelog, TimelogRepository> implements TimelogService {
 
     private final JobService jobService;
     private final TimelogRepository timelogRepository;
-    private final UidGenerator uidGenerator;
+
+    @Autowired
+    public TimelogServiceImpl(final JobService jobService, final TimelogRepository timelogRepository, final UidGenerator uidGenerator) {
+        super(timelogRepository, uidGenerator, EntityType.TIMELOG);
+        this.jobService = jobService;
+        this.timelogRepository = timelogRepository;
+    }
 
     @Override
     public List<Timelog> findTimelogsForJob(String jobUid) {
@@ -105,30 +115,18 @@ public class TimelogServiceImpl implements TimelogService {
     @Override
     @Cacheable(value = "timelog:latest", key = "#id", unless = "#result == null")
     public Optional<Timelog> findLatestVersionById(String id) {
-        if (!SCDCommonValidators.validId.isValid(id)) {
-            throw new ValidationException("Invalid Timelog ID format");
-        }
-
-        return timelogRepository.findLatestVersionById(id);
+        return super.findLatestVersionById(id);
     }
 
     @Override
     @Cacheable(value = "timelog:history", key = "#id", unless = "#result == null")
     public List<Timelog> findAllVersionsById(String id) {
-        if (!SCDCommonValidators.validId.isValid(id)) {
-            throw new ValidationException("Invalid Timelog ID format");
-        }
-
-        return timelogRepository.findAllVersionsById(id);
+        return super.findAllVersionsById(id);
     }
 
     @Override
     public Optional<Timelog> findByUid(String uid) {
-        if (!SCDCommonValidators.validUid.isValid(uid)) {
-            throw new ValidationException("Invalid Timelog UID format");
-        }
-
-        return timelogRepository.findByUid(uid);
+        return super.findByUid(uid);
     }
 
     @Override
@@ -139,45 +137,27 @@ public class TimelogServiceImpl implements TimelogService {
     })
     @Transactional
     public Timelog createNewVersion(String id, Map<String, Object> fieldsToUpdate) {
-        if (!SCDCommonValidators.validId.isValid(id)) {
-            throw new ValidationException("Invalid Timelog ID format");
-        }
-
-        Optional<Timelog> latestVersionOpt = timelogRepository.findLatestVersionById(id);
-
-        if (latestVersionOpt.isEmpty()) {
-            throw new EntityNotFoundException("Timelog with ID " + id + " not found");
-        }
-
-        final Timelog latestVersion = latestVersionOpt.get();
-        return timelogRepository.createNewVersion(latestVersion, fieldsToUpdate);
+        return super.createNewVersion(id, fieldsToUpdate);
     }
 
     @Override
     @Transactional
     public Timelog createEntity(Timelog entity) {
-        // Generate a new entity ID if not set
-        if (entity.getId() == null || entity.getId().isEmpty()) {
-            entity.setId(uidGenerator.generateEntityId(EntityType.JOBS.getPrefix()));
+        if (!TimelogValidators.validNewTimelog.isValid(entity)) {
+            throw new ValidationException("Invalid timelog entity");
         }
-
-        // Set initial version
-        entity.setVersion(1);
-
-        // Generate UID for this version
-        entity.setUid(uidGenerator.generateUid(EntityType.JOBS.getPrefix()));
-
-        // Set timestamps
-        final Date now = new Date();
-        entity.setCreatedAt(now);
-        entity.setUpdatedAt(now);
-
-        // Explicitly use SCDRepositoryBase.save
-        return timelogRepository.save(entity);
+        return super.createEntity(entity);
     }
 
     @Override
     public List<Timelog> findLatestVersionsByCriteria(Map<String, Object> criteria) {
         return timelogRepository.findLatestVersionsByCriteria(criteria);
+    }
+
+    @Override
+    protected void validateEntity(final Timelog entity) {
+        if (!SCDValidators.TimelogValidators.validTimelog.isValid(entity)) {
+            throw new ValidationException("Invalid timelog entity");
+        }
     }
 }

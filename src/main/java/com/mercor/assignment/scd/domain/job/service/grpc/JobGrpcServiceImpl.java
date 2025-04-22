@@ -1,5 +1,6 @@
 package com.mercor.assignment.scd.domain.job.service.grpc;
 
+import com.mercor.assignment.scd.domain.job.CreateNewJobRequest;
 import com.mercor.assignment.scd.domain.job.GetActiveJobsForCompanyRequest;
 import com.mercor.assignment.scd.domain.job.GetActiveJobsForContractorRequest;
 import com.mercor.assignment.scd.domain.job.GetJobsWithRateAboveRequest;
@@ -26,6 +27,16 @@ public class JobGrpcServiceImpl extends JobServiceGrpc.JobServiceImplBase {
 
     private final JobService jobService;
     private final JobMapper jobMapper;
+
+    @Override
+    public void createNewJob(final CreateNewJobRequest request, final StreamObserver<JobResponse> responseObserver) {
+        final Job job = jobMapper.toEntity(request);
+
+        final JobResponse response = jobMapper.toResponse(jobService.createEntity(job));
+
+        responseObserver.onNext(response);
+        responseObserver.onCompleted();
+    }
 
     @Override
     public void getActiveJobsForCompany(GetActiveJobsForCompanyRequest request, StreamObserver<JobListResponse> responseObserver) {

@@ -1,5 +1,6 @@
 package com.mercor.assignment.scd.domain.job.mapper;
 
+import com.mercor.assignment.scd.domain.job.CreateNewJobRequest;
 import com.mercor.assignment.scd.domain.job.JobProto;
 import com.mercor.assignment.scd.domain.job.JobResponse;
 import com.mercor.assignment.scd.domain.job.JobListResponse;
@@ -71,6 +72,24 @@ public interface JobMapper {
             .map(this::toEntity)
             .toList();
     }
+
+    /**
+     * Maps a CreateNewJobRequest to a Job entity
+     *
+     * @param request the CreateNewJobRequest
+     * @return the Job entity
+     */
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "version", ignore = true)
+    @Mapping(target = "uid", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(source = "status", target = "status")
+    @Mapping(source = "rate", target = "rate", qualifiedByName = "doubleToDecimal")
+    @Mapping(source = "title", target = "title")
+    @Mapping(source = "companyId", target = "companyId")
+    @Mapping(source = "contractorId", target = "contractorId")
+    Job toEntity(CreateNewJobRequest request);
 
     /**
      * Maps a Job entity to a JobProto message
